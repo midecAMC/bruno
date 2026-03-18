@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, sendResponseExampleRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -26,6 +27,7 @@ const ResponseExample = ({ item, collection, example }) => {
   const [dragging, setDragging] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
+  const [sending, setSending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
 
@@ -119,8 +121,22 @@ const ResponseExample = ({ item, collection, example }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (example) => {
-    // TODO: Implement try example functionality
+  const handleTryExample = () => {
+    if (!item || !collection || !example?.uid || sending) {
+      return;
+    }
+
+    setSending(true);
+    dispatch(sendResponseExampleRequest(item, collection.uid, example.uid))
+      .then(() => {
+        toast.success('Example sent successfully');
+      })
+      .catch((error) => {
+        toast.error(error?.message || 'Failed to send example');
+      })
+      .finally(() => {
+        setSending(false);
+      });
   };
 
   // Update width when screen width or sidebar width changes
@@ -137,7 +153,7 @@ const ResponseExample = ({ item, collection, example }) => {
     }
   }, [isVerticalLayout, screenWidth, leftSidebarWidth]);
 
-  // Keyboard shortcut support for Ctrl/Cmd+S
+  // Keyboard shortcut support for Ctrl/Cmd+S and Ctrl/Cmd+Enter
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -146,13 +162,20 @@ const ResponseExample = ({ item, collection, example }) => {
           handleSave();
         }
       }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!editMode && item && collection && example?.uid && !sending) {
+          handleTryExample();
+        }
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editMode, item, collection]);
+  }, [editMode, item, collection, example?.uid, sending]);
 
   return (
     <>
@@ -167,6 +190,7 @@ const ResponseExample = ({ item, collection, example }) => {
           onCancel={handleCancel}
           onGenerateCode={handleGenerateCode}
           onTryExample={handleTryExample}
+          sending={sending}
         />
         <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
           <section className="request-pane" data-testid="request-pane">

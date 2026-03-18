@@ -25,6 +25,7 @@ import {
   flattenItems
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
+import { formatResponse } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
@@ -51,6 +52,7 @@ import {
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
   updateEnvironmentColor as _updateEnvironmentColor,
+  updateResponseExampleResponse,
   saveCollectionDraft,
   saveFolderDraft,
   addVar,
@@ -97,6 +99,7 @@ import {
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
+import { getBodyType } from 'utils/responseBodyProcessor';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -662,6 +665,117 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           );
         });
     }
+  });
+};
+
+export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (dispatch, getState) => {
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const itemUid = item?.uid;
+
+  return new Promise(async (resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const examples = item?.draft?.examples || item?.examples || [];
+    const example = examples.find((e) => e.uid === exampleUid);
+
+    if (!example) {
+      return reject(new Error('Example not found'));
+    }
+
+    let collectionCopy = cloneDeep(collection);
+    const itemCopy = cloneDeep(item);
+    const baseRequest = cloneDeep(itemCopy?.draft?.request || itemCopy?.request || {});
+    const exampleRequest = cloneDeep(example.request || {});
+    const mergedRequest = {
+      ...baseRequest,
+      ...exampleRequest,
+      url: exampleRequest.url ?? baseRequest.url,
+      method: exampleRequest.method ?? baseRequest.method,
+      auth: exampleRequest.auth ?? baseRequest.auth,
+      headers: exampleRequest.headers ?? baseRequest.headers,
+      params: exampleRequest.params ?? baseRequest.params,
+      body: exampleRequest.body ? {
+        ...(baseRequest.body || {}),
+        ...exampleRequest.body
+      } : baseRequest.body
+    };
+
+    itemCopy.request = mergedRequest;
+    if (itemCopy.draft) {
+      itemCopy.draft.request = cloneDeep(mergedRequest);
+    }
+
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(itemCopy, collectionCopy);
+      collectionCopy.promptVariables = promptVariables ?? {};
+    } catch (error) {
+      if (error === 'cancelled') {
+        return resolve();
+      }
+      return reject(error);
+    }
+
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      .then((response) => {
+        const headersArray = response?.headers && typeof response.headers === 'object'
+          ? Object.entries(response.headers).map(([name, value]) => ({
+              name,
+              value,
+              enabled: true
+            }))
+          : [];
+
+        const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
+        const contentType = contentTypeHeader?.value?.toLowerCase() || '';
+        const bodyType = getBodyType(contentType);
+        const bodyContent = formatResponse(response?.data, response?.dataBuffer, bodyType);
+
+        dispatch(updateResponseExampleResponse({
+          itemUid,
+          collectionUid,
+          exampleUid,
+          response: {
+            status: response?.status || null,
+            statusText: response?.statusText || '',
+            headers: headersArray,
+            body: {
+              type: bodyType,
+              content: bodyContent
+            }
+          }
+        }));
+
+        resolve(response);
+      })
+      .catch((err) => {
+        dispatch(updateResponseExampleResponse({
+          itemUid,
+          collectionUid,
+          exampleUid,
+          response: {
+            status: null,
+            statusText: 'Error',
+            headers: [],
+            body: {
+              type: 'text',
+              content: err?.message || 'Something went wrong'
+            }
+          }
+        }));
+        reject(err);
+      });
   });
 };
 
