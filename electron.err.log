@@ -1,0 +1,24 @@
+C:\Users\midec\Downloads\bruno-main\bruno-main\node_modules\electron-is-dev\index.js:5
+	throw new TypeError('Not running in an Electron environment!');
+	^
+
+TypeError: Not running in an Electron environment!
+    at Object.<anonymous> (C:\Users\midec\Downloads\bruno-main\bruno-main\node_modules\electron-is-dev\index.js:5:8)
+    at Module._compile (node:internal/modules/cjs/loader:1714:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1848:10)
+    at Module.load (node:internal/modules/cjs/loader:1448:32)
+    at Module._load (node:internal/modules/cjs/loader:1270:12)
+    at c._load (node:electron/js2c/node_init:2:17993)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1470:12)
+    at require (node:internal/modules/helpers:147:16)
+
+Node.js v22.19.0
+npm error Lifecycle script `dev` failed with error:
+npm error code 1
+npm error path C:\Users\midec\Downloads\bruno-main\bruno-main\packages\bruno-electron
+npm error workspace bruno@2.0.0
+npm error location C:\Users\midec\Downloads\bruno-main\bruno-main\packages\bruno-electron
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c electron .

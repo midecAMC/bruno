@@ -10,7 +10,8 @@ import {
   IconKeyboard,
   IconZoomQuestion,
   IconSquareLetterB,
-  IconDatabase
+  IconDatabase,
+  IconBrandGit
 } from '@tabler/icons';
 
 import Support from './Support';
@@ -20,6 +21,7 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
+import GitSync from './GitSync';
 
 import StyledWrapper from './StyledWrapper';
 import Cache from './Cache/index';
@@ -71,6 +73,10 @@ const Preferences = () => {
       case 'cache': {
         return <Cache />;
       }
+
+      case 'git-sync': {
+        return <GitSync />;
+      }
     }
   };
 
@@ -101,6 +107,10 @@ const Preferences = () => {
           <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
             <IconDatabase size={16} strokeWidth={1.5} />
             Cache
+          </div>
+          <div className={getTabClassname('git-sync')} role="tab" onClick={() => setTab('git-sync')}>
+            <IconBrandGit size={16} strokeWidth={1.5} />
+            Git Sync
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             <IconZoomQuestion size={16} strokeWidth={1.5} />

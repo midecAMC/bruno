@@ -8,7 +8,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, scheduleGitAutomationTrigger, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import {
@@ -177,6 +177,14 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
             collectionUid
           })
         );
+        dispatch(scheduleGitAutomationTrigger({
+          trigger: 'save',
+          context: {
+            targetType: 'request',
+            targetName: item.name || item.filename,
+            collectionName: collection.name
+          }
+        }));
       })
       .then(resolve)
       .catch((err) => {
@@ -284,6 +292,14 @@ export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dis
         if (folder.draft) {
           dispatch(saveFolderDraft({ collectionUid, folderUid }));
         }
+        dispatch(scheduleGitAutomationTrigger({
+          trigger: 'save',
+          context: {
+            targetType: 'folder',
+            targetName: folder.name || folder.filename,
+            collectionName: collection.name
+          }
+        }));
       })
       .then(resolve)
       .catch((err) => {
@@ -742,6 +758,16 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
 
         ipcRenderer
           .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
+          .then(() => {
+            dispatch(scheduleGitAutomationTrigger({
+              trigger: 'createRequest',
+              context: {
+                targetType: 'folder',
+                targetName: folderName,
+                collectionName: collection.name
+              }
+            }));
+          })
           .then(resolve)
           .catch((error) => {
             toast.error('Failed to create a new folder!');
@@ -775,6 +801,16 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
 
           ipcRenderer
             .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
+            .then(() => {
+              dispatch(scheduleGitAutomationTrigger({
+                trigger: 'createRequest',
+                context: {
+                  targetType: 'folder',
+                  targetName: folderName,
+                  collectionName: collection.name
+                }
+              }));
+            })
             .then(resolve)
             .catch((error) => {
               toast.error('Failed to create a new folder!');
@@ -1344,6 +1380,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 preview: false
               })
             );
+            dispatch(scheduleGitAutomationTrigger({
+              trigger: 'createRequest',
+              context: {
+                targetType: 'request',
+                targetName: requestName,
+                collectionName: collection.name
+              }
+            }));
             resolve();
           })
           .catch(reject);
@@ -1375,6 +1419,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 itemPathname: fullName
               })
             );
+            dispatch(scheduleGitAutomationTrigger({
+              trigger: 'createRequest',
+              context: {
+                targetType: 'request',
+                targetName: requestName,
+                collectionName: collection.name
+              }
+            }));
             resolve();
           })
           .catch(reject);
@@ -1405,6 +1457,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                   itemPathname: fullName
                 })
               );
+              dispatch(scheduleGitAutomationTrigger({
+                trigger: 'createRequest',
+                context: {
+                  targetType: 'request',
+                  targetName: requestName,
+                  collectionName: collection.name
+                }
+              }));
               resolve();
             })
             .catch(reject);
@@ -1501,6 +1561,14 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
               preview: false
             })
           );
+          dispatch(scheduleGitAutomationTrigger({
+            trigger: 'createRequest',
+            context: {
+              targetType: 'request',
+              targetName: requestName,
+              collectionName: collection.name
+            }
+          }));
           resolve();
         })
         .catch(reject);
@@ -1537,6 +1605,14 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
               itemPathname: fullName
             })
           );
+          dispatch(scheduleGitAutomationTrigger({
+            trigger: 'createRequest',
+            context: {
+              targetType: 'request',
+              targetName: requestName,
+              collectionName: collection.name
+            }
+          }));
           resolve();
         })
         .catch(reject);
@@ -1629,6 +1705,14 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               preview: false
             })
           );
+          dispatch(scheduleGitAutomationTrigger({
+            trigger: 'createRequest',
+            context: {
+              targetType: 'request',
+              targetName: requestName,
+              collectionName: collection.name
+            }
+          }));
           resolve();
         })
         .catch(reject);
@@ -1665,6 +1749,14 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               itemPathname: fullName
             })
           );
+          dispatch(scheduleGitAutomationTrigger({
+            trigger: 'createRequest',
+            context: {
+              targetType: 'request',
+              targetName: requestName,
+              collectionName: collection.name
+            }
+          }));
           resolve();
         })
         .catch(reject);
@@ -1930,6 +2022,14 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
         // Immediately sync Redux to the saved (persisted) set so old ephemerals
         // aren’t around when the watcher event arrives.
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+        dispatch(scheduleGitAutomationTrigger({
+          trigger: 'save',
+          context: {
+            targetType: 'environment',
+            targetName: environment.name,
+            collectionName: collection.name
+          }
+        }));
       })
       .then(resolve)
       .catch(reject);
@@ -2429,6 +2529,14 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent
           toast.success('Collection Settings saved successfully');
         }
         dispatch(saveCollectionDraft({ collectionUid }));
+        dispatch(scheduleGitAutomationTrigger({
+          trigger: 'save',
+          context: {
+            targetType: 'collection',
+            targetName: collection.name,
+            collectionName: collection.name
+          }
+        }));
       })
       .then(resolve)
       .catch((err) => {

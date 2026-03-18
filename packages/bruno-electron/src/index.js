@@ -328,7 +328,7 @@ app.on('ready', async () => {
   const url = isDev
     ? `http://localhost:${devPort}`
     : format({
-        pathname: path.join(__dirname, '../web/index.html'),
+        pathname: path.join(process.resourcesPath, 'web/index.html'),
         protocol: 'file:',
         slashes: true
       });

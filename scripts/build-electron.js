@@ -1,8 +1,7 @@
 const os = require('os');
 const fs = require('fs-extra');
-const util = require('util');
-const spawn = util.promisify(require('child_process').spawn);
 const path = require('path');
+const { spawn } = require('child_process');
 
 async function deleteFileIfExists(filePath) {
   try {
@@ -48,8 +47,8 @@ async function removeSourceMapFiles(directory) {
 }
 
 async function execCommandWithOutput(command) {
-  return new Promise(async (resolve, reject) => {
-    const childProcess = await spawn(command, {
+  return new Promise((resolve, reject) => {
+    const childProcess = spawn(command, {
       stdio: 'inherit',
       shell: true
     });
@@ -68,6 +67,9 @@ async function execCommandWithOutput(command) {
 
 async function main() {
   try {
+    console.log('Building the web application');
+    await execCommandWithOutput('npm run build:web');
+
     // Remove out directory
     await deleteFileIfExists('packages/bruno-electron/out');
 
@@ -80,6 +82,12 @@ async function main() {
 
     // Copy build
     await copyFolderIfExists('packages/bruno-app/dist', 'packages/bruno-electron/web');
+
+    const entryHtmlPath = path.join('packages', 'bruno-electron', 'web', 'index.html');
+    const hasEntryHtml = await fs.pathExists(entryHtmlPath);
+    if (!hasEntryHtml) {
+      throw new Error(`Missing packaged web entrypoint at ${entryHtmlPath}`);
+    }
 
     // Update static paths
     const files = await fs.readdir('packages/bruno-electron/web');

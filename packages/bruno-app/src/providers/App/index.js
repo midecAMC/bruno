@@ -7,6 +7,7 @@ import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
 import useOpenAPISyncPolling from './useOpenAPISyncPolling';
+import useGitSyncPolling from './useGitSyncPolling';
 import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
@@ -15,6 +16,7 @@ export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
   useOpenAPISyncPolling();
+  useGitSyncPolling();
   const dispatch = useDispatch();
 
   useEffect(() => {
