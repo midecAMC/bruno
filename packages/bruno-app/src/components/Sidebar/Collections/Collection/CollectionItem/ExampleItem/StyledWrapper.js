@@ -4,6 +4,8 @@ const StyledWrapper = styled.div`
   position: relative;
   
   .menu-icon {
+    display: flex;
+    align-items: center;
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
     visibility: hidden;
 
@@ -15,6 +17,12 @@ const StyledWrapper = styled.div`
         visibility: visible;
       }
     }
+  }
+
+  .send-icon {
+    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    visibility: hidden;
+    margin-right: 0.25rem;
   }
 
   .collection-item-name {
@@ -32,6 +40,7 @@ const StyledWrapper = styled.div`
     &:hover,
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      .send-icon,
       .menu-icon {
         visibility: visible;
       }

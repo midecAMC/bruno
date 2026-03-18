@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import IconEdit from 'components/Icons/IconEdit';
-import { IconCode, IconDeviceFloppy } from '@tabler/icons';
+import { IconCode, IconDeviceFloppy, IconSend } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import TruncatedText from 'components/TruncatedText';
@@ -17,7 +17,9 @@ const ResponseExampleTopBar = ({
   onEditToggle,
   onSave,
   onCancel,
-  onGenerateCode
+  onGenerateCode,
+  onTryExample,
+  sending = false
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -33,6 +35,12 @@ const ResponseExampleTopBar = ({
         isExample: true,
         exampleUid: exampleUid
       });
+    }
+  };
+
+  const handleTryExample = () => {
+    if (onTryExample) {
+      onTryExample(example);
     }
   };
 
@@ -180,6 +188,17 @@ const ResponseExampleTopBar = ({
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
+            <Button
+              color="primary"
+              size="sm"
+              icon={<IconSend size={16} color={theme.examples.buttonIconColor} />}
+              onClick={handleTryExample}
+              title="Send Example"
+              disabled={sending}
+              data-testid="response-example-send-btn"
+            >
+              {sending ? 'Sending...' : 'Try Example'}
+            </Button>
             <Button
               color="secondary"
               size="sm"

@@ -5,10 +5,10 @@ import {
   updateResponseExample,
   cloneResponseExample
 } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, sendResponseExampleRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { IconDots, IconEdit, IconCopy, IconTrash, IconCode } from '@tabler/icons';
+import { IconDots, IconEdit, IconCopy, IconTrash, IconCode, IconSend } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
 import classnames from 'classnames';
@@ -31,6 +31,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
@@ -115,6 +116,24 @@ const ExampleItem = ({ example, item, collection }) => {
     }
   };
 
+  const handleTryExample = () => {
+    if (!item || !collection || !example?.uid || sending) {
+      return;
+    }
+
+    setSending(true);
+    dispatch(sendResponseExampleRequest(item, collection.uid, example.uid))
+      .then(() => {
+        toast.success(`Example "${example.name}" sent successfully`);
+      })
+      .catch((error) => {
+        toast.error(error?.message || 'Failed to send example');
+      })
+      .finally(() => {
+        setSending(false);
+      });
+  };
+
   const handleRenameConfirm = (newName) => {
     // Find the example index in the original examples array
     dispatch(updateResponseExample({
@@ -155,6 +174,14 @@ const ExampleItem = ({ example, item, collection }) => {
         label: 'Generate Code',
         onClick: handleGenerateCode,
         testId: 'response-example-generate-code-option'
+      },
+      {
+        id: 'try-example',
+        leftSection: IconSend,
+        label: sending ? 'Sending...' : 'Try Example',
+        onClick: handleTryExample,
+        disabled: sending,
+        testId: 'response-example-try-option'
       },
       { id: 'separator-1', type: 'divider' },
       {
@@ -206,6 +233,18 @@ const ExampleItem = ({ example, item, collection }) => {
         <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
         <span className="item-name truncate">{example.name}</span>
       </div>
+      <ActionIcon
+        className="send-icon"
+        label={sending ? 'Sending example' : 'Try Example'}
+        disabled={sending}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleTryExample();
+        }}
+      >
+        <IconSend size={16} />
+      </ActionIcon>
       <div className="menu-icon pr-2">
         <MenuDropdown
           ref={menuDropdownRef}
