@@ -489,7 +489,7 @@ test.describe('Create Workspace', () => {
   });
 
   test.describe('Edge Cases', () => {
-    test('should handle creating multiple workspaces sequentially', async ({ launchElectronApp, createTmpDir }) => {
+    test('should handle creating three workspaces sequentially', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-multiple');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
@@ -521,17 +521,30 @@ test.describe('Create Workspace', () => {
         await expect(page.getByTestId('workspace-name')).toHaveText('Workspace Two', { timeout: 5000 });
       });
 
-      await test.step('Verify both workspaces exist in dropdown', async () => {
+      await test.step('Create third workspace', async () => {
+        await page.locator('.workspace-name-container').click();
+        await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+        const renameInput = page.locator('.workspace-name-input');
+        await expect(renameInput).toBeVisible({ timeout: 5000 });
+        await renameInput.fill('Workspace Three');
+        await renameInput.press('Enter');
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('workspace-name')).toHaveText('Workspace Three', { timeout: 5000 });
+      });
+
+      await test.step('Verify all three workspaces exist in dropdown', async () => {
         await page.locator('.workspace-name-container').click();
         const wsOne = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'Workspace One' });
         const wsTwo = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'Workspace Two' });
+        const wsThree = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'Workspace Three' });
         await expect(wsOne.first()).toBeVisible();
         await expect(wsTwo.first()).toBeVisible();
+        await expect(wsThree.first()).toBeVisible();
       });
 
-      await test.step('Verify both workspace folders on filesystem', async () => {
+      await test.step('Verify all three workspace folders on filesystem', async () => {
         const wsDirs = findCreatedWorkspaceDirs(wsLocation);
-        expect(wsDirs.length).toBe(2);
+        expect(wsDirs.length).toBe(3);
       });
 
       await closeElectronApp(app);

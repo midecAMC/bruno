@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
-import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub, IconGitBranch, IconArrowBigUpLines, IconArrowBigDownLines, IconRefresh, IconAlertTriangle, IconPoint } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
+import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
+import MenuDropdown from 'ui/MenuDropdown';
 import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { refreshGitSyncStatus, runGitAutomationPull, runGitAutomationPush } from 'providers/ReduxStore/slices/app';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
 
@@ -25,12 +28,72 @@ const StatusBar = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const logs = useSelector((state) => state.logs.logs);
+  const gitSyncPreferences = useSelector((state) => state.app.preferences?.gitSync);
+  const gitSyncStatus = useSelector((state) => state.app.gitSyncStatus);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   const errorCount = logs.filter((log) => log.type === 'error').length;
+  const syncState = gitSyncStatus.syncState || {};
+  const gitSyncEnabled = Boolean(gitSyncPreferences?.enabled && gitSyncPreferences?.repoPath);
+  const isGitBusy = Boolean(gitSyncStatus.activeOperation);
+
+  const gitBadge = useMemo(() => {
+    if (!gitSyncEnabled) {
+      return {
+        label: 'Git Off',
+        className: 'git-status-disabled',
+        icon: IconPoint,
+        hint: 'Git sync is disabled'
+      };
+    }
+
+    if (gitSyncStatus.lastRunError) {
+      return {
+        label: 'Git Error',
+        className: 'git-status-error',
+        icon: IconAlertTriangle,
+        hint: gitSyncStatus.lastRunError
+      };
+    }
+
+    if (syncState.isDirty) {
+      return {
+        label: `Dirty${syncState.changedFiles ? ` ${syncState.changedFiles}` : ''}`,
+        className: 'git-status-dirty',
+        icon: IconPoint,
+        hint: 'Local uncommitted changes'
+      };
+    }
+
+    if (Number(syncState.behind || 0) > 0) {
+      return {
+        label: `Behind ${syncState.behind}`,
+        className: 'git-status-behind',
+        icon: IconArrowBigDownLines,
+        hint: 'Remote has new commits'
+      };
+    }
+
+    if (Number(syncState.ahead || 0) > 0) {
+      return {
+        label: `Ahead ${syncState.ahead}`,
+        className: 'git-status-ahead',
+        icon: IconArrowBigUpLines,
+        hint: 'Local commits not pushed'
+      };
+    }
+
+    return {
+      label: 'Git Synced',
+      className: 'git-status-synced',
+      icon: IconGitBranch,
+      hint: 'Repository is in sync'
+    };
+  }, [gitSyncEnabled, gitSyncStatus.lastRunError, syncState]);
+  const GitBadgeIcon = gitBadge.icon;
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
@@ -54,6 +117,77 @@ const StatusBar = () => {
       Mousetrap.trigger(binding);
     });
   };
+
+  const handleRefreshGitStatus = () => {
+    dispatch(refreshGitSyncStatus({ silent: false }))
+      .then(() => toast.success('Git status refreshed'))
+      .catch(() => {});
+  };
+
+  const handlePull = (force = false) => {
+    dispatch(runGitAutomationPull({ silent: false, reason: 'manual', force }))
+      .then((result) => {
+        if (result?.pulled) {
+          toast.success(force ? 'Force pull completed' : 'Changes pulled');
+        } else if (result?.skipped) {
+          toast(result.reason || 'Nothing to pull');
+        } else {
+          toast('Repository already up to date');
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handlePush = (force = false) => {
+    dispatch(runGitAutomationPush({ silent: false, force }))
+      .then((result) => {
+        if (result?.pushed) {
+          toast.success(force ? 'Force push completed' : 'Changes pushed');
+        } else {
+          toast(result?.reason || 'Nothing to push');
+        }
+      })
+      .catch(() => {});
+  };
+
+  const gitMenuItems = [
+    {
+      id: 'git-refresh',
+      label: 'Refresh status',
+      leftSection: IconRefresh,
+      onClick: handleRefreshGitStatus,
+      disabled: !gitSyncEnabled
+    },
+    {
+      id: 'git-pull',
+      label: 'Pull changes',
+      leftSection: IconArrowBigDownLines,
+      onClick: () => handlePull(false),
+      disabled: !gitSyncEnabled
+    },
+    {
+      id: 'git-push',
+      label: 'Push changes',
+      leftSection: IconArrowBigUpLines,
+      onClick: () => handlePush(false),
+      disabled: !gitSyncEnabled
+    },
+    { id: 'git-divider', type: 'divider' },
+    {
+      id: 'git-force-pull',
+      label: 'Force pull',
+      leftSection: IconArrowBigDownLines,
+      onClick: () => handlePull(true),
+      disabled: !gitSyncEnabled
+    },
+    {
+      id: 'git-force-push',
+      label: 'Force push',
+      leftSection: IconArrowBigUpLines,
+      onClick: () => handlePush(true),
+      disabled: !gitSyncEnabled
+    }
+  ];
 
   return (
     <StyledWrapper>
@@ -146,6 +280,35 @@ const StatusBar = () => {
                 <span className="console-label">Cookies</span>
               </div>
             </button>
+
+            <MenuDropdown
+              items={gitMenuItems}
+              placement="top-end"
+              header={(
+                <div className="git-dropdown-header">
+                  <div className="git-dropdown-title">Git Sync</div>
+                  <div className="git-dropdown-meta">
+                    <div>Branch: {syncState.branch || gitSyncStatus.repoDetails?.branch || '-'}</div>
+                    <div>Ahead: {Number(syncState.ahead || 0)} | Behind: {Number(syncState.behind || 0)}</div>
+                    <div>Changed files: {Number(syncState.changedFiles || 0)}</div>
+                    <div>Status: {isGitBusy ? `${gitBadge.label} (${gitSyncStatus.activeOperation})` : gitBadge.label}</div>
+                    {gitSyncStatus.lastRunError ? <div className="git-dropdown-error">{gitSyncStatus.lastRunError}</div> : null}
+                  </div>
+                </div>
+              )}
+            >
+              <button
+                className={`status-bar-button git-status-button ${gitBadge.className} ${isGitBusy ? 'git-status-busy' : ''}`}
+                data-trigger="git-sync"
+                tabIndex={0}
+                aria-label="Open Git sync status"
+              >
+                <div className="console-button-content">
+                  <GitBadgeIcon size={14} strokeWidth={1.8} aria-hidden="true" />
+                  <span className="console-label">{isGitBusy ? `Git ${gitSyncStatus.activeOperation}...` : gitBadge.label}</span>
+                </div>
+              </button>
+            </MenuDropdown>
 
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}

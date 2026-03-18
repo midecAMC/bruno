@@ -1,0 +1,21 @@
+
+> dev
+> node ./scripts/dev.js
+
+
+[1m[33m🚀 Starting Bruno development environment...[0m
+
+
+> @usebruno/app@2.0.0 dev
+> rsbuild dev
+
+  Rsbuild v1.1.13
+
+  ➜ [2mNetwork:  [22m[36mhttp://192.168.2.74:3000/[39m
+  ➜ [2mNetwork:  [22m[36mhttp://192.168.137.1:3000/[39m
+  ➜ [2mLocal:    [22m[36mhttp://localhost:3000/[39m
+  ➜ [2mNetwork:  [22m[36mhttp://172.22.64.1:3000/[39m
+  ➜ [2mNetwork:  [22m[36mhttp://172.23.192.1:3000/[39m
+
+start   Building...
+ready   Built in [1m28.7[22m s[90m (web)[39m

@@ -61,6 +61,21 @@ const defaultPreferences = {
     enabled: false,
     interval: 1000
   },
+  gitSync: {
+    enabled: false,
+    repoPath: '',
+    autoPull: true,
+    autoPush: true,
+    pullInterval: 30000,
+    commitDelay: 1500,
+    commitAuthorName: '',
+    commitAuthorEmail: '',
+    commitTriggers: {
+      onSave: true,
+      onCreateRequest: false,
+      onClose: false
+    }
+  },
   display: {
     zoomPercentage: 100
   },
@@ -136,6 +151,21 @@ const preferencesSchema = Yup.object().shape({
   autoSave: Yup.object({
     enabled: Yup.boolean(),
     interval: Yup.number().min(100)
+  }),
+  gitSync: Yup.object({
+    enabled: Yup.boolean(),
+    repoPath: Yup.string().max(2048).nullable(),
+    autoPull: Yup.boolean(),
+    autoPush: Yup.boolean(),
+    pullInterval: Yup.number().min(1000),
+    commitDelay: Yup.number().min(0),
+    commitAuthorName: Yup.string().max(256).nullable(),
+    commitAuthorEmail: Yup.string().max(256).nullable(),
+    commitTriggers: Yup.object({
+      onSave: Yup.boolean(),
+      onCreateRequest: Yup.boolean(),
+      onClose: Yup.boolean()
+    })
   }),
   display: Yup.object({
     zoomPercentage: Yup.number().min(50).max(150)
