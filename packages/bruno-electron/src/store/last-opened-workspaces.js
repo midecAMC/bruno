@@ -14,21 +14,38 @@ class LastOpenedWorkspaces {
 
   add(workspacePath) {
     const workspaces = this.getAll();
-
-    if (workspaces.includes(workspacePath)) {
-      return workspaces;
-    }
-
-    workspaces.unshift(workspacePath);
-    this.store.set('workspaces.lastOpenedWorkspaces', workspaces);
-    return workspaces;
+    const filteredWorkspaces = workspaces.filter((w) => w !== workspacePath);
+    filteredWorkspaces.unshift(workspacePath);
+    this.store.set('workspaces.lastOpenedWorkspaces', filteredWorkspaces);
+    return filteredWorkspaces;
   }
 
   remove(workspacePath) {
     const workspaces = this.getAll();
     const filteredWorkspaces = workspaces.filter((w) => w !== workspacePath);
     this.store.set('workspaces.lastOpenedWorkspaces', filteredWorkspaces);
+
+    const lastActiveWorkspace = this.getLastActive();
+    if (lastActiveWorkspace === workspacePath) {
+      this.store.delete('workspaces.lastActiveWorkspace');
+    }
+
     return filteredWorkspaces;
+  }
+
+  getLastActive() {
+    return this.store.get('workspaces.lastActiveWorkspace', null);
+  }
+
+  setLastActive(workspacePath) {
+    if (!workspacePath) {
+      this.store.delete('workspaces.lastActiveWorkspace');
+      return null;
+    }
+
+    this.store.set('workspaces.lastActiveWorkspace', workspacePath);
+    this.add(workspacePath);
+    return workspacePath;
   }
 }
 

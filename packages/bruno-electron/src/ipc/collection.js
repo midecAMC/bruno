@@ -226,7 +226,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;
 
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig, {
+          attachToWorkspace: Boolean(options.workspaceId && options.workspaceId !== 'default'),
+          workspacePath: options.workspaceId || null
+        });
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
       } catch (error) {
         return Promise.reject(error);
@@ -302,7 +305,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
 
-      mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
+      mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig, {
+        attachToWorkspace: false,
+        workspacePath: null
+      });
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
     }
   );
@@ -769,7 +775,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
       const { app } = require('electron');
-      const appVersion = app?.getVersion() || '2.0.0';
+      const appVersion = app?.getVersion() || '2.0.1';
 
       // For single environments and folder exports, include info in each environment
       const environmentWithInfo = (environment) => ({
@@ -1069,15 +1075,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return results;
   });
 
-  ipcMain.handle('renderer:open-collection', async () => {
+  ipcMain.handle('renderer:open-collection', async (_event, options = {}) => {
     if (watcher && mainWindow) {
-      await openCollectionDialog(mainWindow, watcher);
+      await openCollectionDialog(mainWindow, watcher, {
+        attachToWorkspace: Boolean(options.workspaceId && options.workspaceId !== 'default'),
+        workspacePath: options.workspaceId || null
+      });
     }
   });
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
+      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, {
+        ...options,
+        attachToWorkspace: false,
+        workspacePath: options.workspacePath || null
+      });
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');

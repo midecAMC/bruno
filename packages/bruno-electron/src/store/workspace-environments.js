@@ -6,6 +6,7 @@ const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
+const { workspaceUserSettingsStore } = require('./workspace-user-settings');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -111,12 +112,43 @@ class GlobalEnvironmentsManager {
         }
       }
 
+      const activeGlobalEnvironmentUid = await this.getActiveGlobalEnvironmentUid(workspacePath);
+      const normalizedActiveGlobalEnvironmentUid = environments.some((environment) => environment.uid === activeGlobalEnvironmentUid)
+        ? activeGlobalEnvironmentUid
+        : null;
+
       return {
-        globalEnvironments: environments
+        globalEnvironments: environments,
+        activeGlobalEnvironmentUid: normalizedActiveGlobalEnvironmentUid
       };
     } catch (error) {
       throw error;
     }
+  }
+
+  async getActiveGlobalEnvironmentUid(workspacePath) {
+    try {
+      if (!workspacePath) {
+        return null;
+      }
+
+      if (workspaceUserSettingsStore.hasActiveGlobalEnvironmentUid(workspacePath)) {
+        return workspaceUserSettingsStore.getActiveGlobalEnvironmentUid(workspacePath);
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async setActiveGlobalEnvironmentUid(workspacePath, environmentUid) {
+    if (!workspacePath) {
+      throw new Error('Workspace path is required');
+    }
+
+    workspaceUserSettingsStore.setActiveGlobalEnvironmentUid(workspacePath, environmentUid);
+    return true;
   }
 
   async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {

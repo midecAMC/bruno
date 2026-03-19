@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub, IconGitBranch, IconArrowBigUpLines, IconArrowBigDownLines, IconRefresh, IconAlertTriangle, IconPoint } from '@tabler/icons';
@@ -13,7 +13,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { refreshGitSyncStatus, runGitAutomationPull, runGitAutomationPush } from 'providers/ReduxStore/slices/app';
+import { refreshGitSyncStatus, runGitAutomationPull, runGitAutomationPush, runGitAutomationSync } from 'providers/ReduxStore/slices/app';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
 
@@ -31,6 +31,7 @@ const StatusBar = () => {
   const gitSyncPreferences = useSelector((state) => state.app.preferences?.gitSync);
   const gitSyncStatus = useSelector((state) => state.app.gitSyncStatus);
   const [cookiesOpen, setCookiesOpen] = useState(false);
+  const gitMenuRef = useRef(null);
   const { version } = useApp();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -128,7 +129,13 @@ const StatusBar = () => {
     dispatch(runGitAutomationPull({ silent: false, reason: 'manual', force }))
       .then((result) => {
         if (result?.pulled) {
-          toast.success(force ? 'Force pull completed' : 'Changes pulled');
+          if (result?.discardedLocalFiles?.length) {
+            toast.success(`Pulled changes. Replaced ${result.discardedLocalFiles.length} local file(s) with remote versions.`);
+          } else if (result?.restoredLocalFiles?.length) {
+            toast.success(`Pulled changes and restored ${result.restoredLocalFiles.length} local file(s).`);
+          } else {
+            toast.success(force ? 'Force pull completed' : 'Changes pulled');
+          }
         } else if (result?.skipped) {
           toast(result.reason || 'Nothing to pull');
         } else {
@@ -142,12 +149,51 @@ const StatusBar = () => {
     dispatch(runGitAutomationPush({ silent: false, force }))
       .then((result) => {
         if (result?.pushed) {
-          toast.success(force ? 'Force push completed' : 'Changes pushed');
+          if (result?.committed) {
+            toast.success(`${force ? 'Force push completed' : 'Changes pushed'} with a new commit.`);
+          } else {
+            toast.success(force ? 'Force push completed' : 'Changes pushed');
+          }
         } else {
           toast(result?.reason || 'Nothing to push');
         }
       })
       .catch(() => {});
+  };
+
+  const handleGitQuickSync = (event) => {
+    event?.preventDefault?.();
+
+    dispatch(runGitAutomationSync({ silent: false }))
+      .then((result) => {
+        if (result?.skipped) {
+          toast(result.reason || 'Git sync is disabled');
+          return;
+        }
+
+        if (result?.pulled && result?.pushed) {
+          toast.success('Git synchronized. Pulled and pushed changes.');
+          return;
+        }
+
+        if (result?.pulled) {
+          toast.success('Git synchronized. Pulled changes.');
+          return;
+        }
+
+        if (result?.pushed) {
+          toast.success('Git synchronized. Pushed changes.');
+          return;
+        }
+
+        toast.success('Git status refreshed. Repository already in sync.');
+      })
+      .catch(() => {});
+  };
+
+  const handleGitContextMenu = (event) => {
+    event.preventDefault();
+    gitMenuRef.current?.show?.();
   };
 
   const gitMenuItems = [
@@ -282,8 +328,10 @@ const StatusBar = () => {
             </button>
 
             <MenuDropdown
+              ref={gitMenuRef}
               items={gitMenuItems}
               placement="top-end"
+              disableTriggerClick
               header={(
                 <div className="git-dropdown-header">
                   <div className="git-dropdown-title">Git Sync</div>
@@ -300,6 +348,8 @@ const StatusBar = () => {
               <button
                 className={`status-bar-button git-status-button ${gitBadge.className} ${isGitBusy ? 'git-status-busy' : ''}`}
                 data-trigger="git-sync"
+                onClick={handleGitQuickSync}
+                onContextMenu={handleGitContextMenu}
                 tabIndex={0}
                 aria-label="Open Git sync status"
               >

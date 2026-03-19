@@ -260,6 +260,14 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:set-last-active-workspace', async (_event, workspacePath) => {
+    try {
+      return lastOpenedWorkspaces.setLastActive(workspacePath);
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:rename-workspace', async (event, workspacePath, newName) => {
     try {
       await updateWorkspaceName(workspacePath, newName);
@@ -692,6 +700,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       }
 
       const workspacePaths = lastOpenedWorkspaces.getAll();
+      const lastActiveWorkspacePath = lastOpenedWorkspaces.getLastActive();
       const invalidPaths = [];
 
       for (const workspacePath of workspacePaths) {
@@ -725,6 +734,14 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       for (const invalidPath of invalidPaths) {
         lastOpenedWorkspaces.remove(invalidPath);
+      }
+
+      if (lastActiveWorkspacePath && !invalidPaths.includes(lastActiveWorkspacePath)) {
+        const lastActiveWorkspaceUid = getWorkspaceUid(lastActiveWorkspacePath);
+        win.webContents.send('main:last-active-workspace', {
+          workspacePath: lastActiveWorkspacePath,
+          workspaceUid: lastActiveWorkspaceUid
+        });
       }
     } catch (error) {
       console.error('Error initializing workspaces:', error);

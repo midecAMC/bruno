@@ -67,6 +67,7 @@ const MenuDropdown = forwardRef(({
   groupStyle = 'action',
   autoFocusFirstOption = false,
   submenuPlacement = 'right',
+  disableTriggerClick = false,
   'data-testid': testId = 'menu-dropdown',
   ...dropdownProps
 }, ref) => {
@@ -264,8 +265,11 @@ const MenuDropdown = forwardRef(({
 
   // Toggle dropdown visibility
   const handleTriggerClick = useCallback(() => {
+    if (disableTriggerClick) {
+      return;
+    }
     updateOpenState(!isOpen);
-  }, [isOpen, updateOpenState]);
+  }, [disableTriggerClick, isOpen, updateOpenState]);
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback((instance, event) => {

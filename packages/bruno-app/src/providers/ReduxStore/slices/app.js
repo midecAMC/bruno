@@ -612,6 +612,7 @@ export const refreshGitSyncStatus = ({ silent = false } = {}) => async (dispatch
 export const runGitAutomationPush = ({ silent = true, force = false } = {}) => async (dispatch, getState) => {
   const state = getState();
   const gitSyncPreferences = state.app.preferences?.gitSync;
+  const activeWorkspace = getActiveWorkspace(state);
 
   if (!gitSyncPreferences?.enabled || !gitSyncPreferences?.repoPath) {
     return { skipped: true, reason: 'disabled' };
@@ -623,10 +624,21 @@ export const runGitAutomationPush = ({ silent = true, force = false } = {}) => a
     }));
     const result = await window.ipcRenderer.invoke('renderer:git-sync-push', {
       repoPath: gitSyncPreferences.repoPath,
+      commitAuthorName: gitSyncPreferences.commitAuthorName || null,
+      commitAuthorEmail: gitSyncPreferences.commitAuthorEmail || null,
+      workspaceName: activeWorkspace?.name || null,
+      context: {
+        targetType: 'manual',
+        targetName: 'status-bar push',
+        collectionName: null
+      },
       force
     });
 
     dispatch(updateGitSyncStatus({
+      lastCommitAt: result?.committed ? new Date().toISOString() : state.app.gitSyncStatus?.lastCommitAt,
+      lastCommitMessage: result?.committed ? result.message : state.app.gitSyncStatus?.lastCommitMessage,
+      lastCommitStatus: result?.committed ? 'committed' : state.app.gitSyncStatus?.lastCommitStatus,
       lastPushAt: new Date().toISOString(),
       lastPushStatus: result?.pushed ? (force ? 'force_pushed' : 'pushed') : result?.reason || 'idle',
       repoDetails: result?.gitRootPath ? {
@@ -651,6 +663,44 @@ export const runGitAutomationPush = ({ silent = true, force = false } = {}) => a
     }
     throw error;
   }
+};
+
+export const runGitAutomationSync = ({ silent = true } = {}) => async (dispatch, getState) => {
+  const state = getState();
+  const gitSyncPreferences = state.app.preferences?.gitSync;
+
+  if (!gitSyncPreferences?.enabled || !gitSyncPreferences?.repoPath) {
+    return { skipped: true, reason: 'disabled' };
+  }
+
+  const summary = {
+    refreshed: false,
+    pulled: false,
+    pushed: false,
+    pullResult: null,
+    pushResult: null,
+    finalStatus: null
+  };
+
+  const initialStatus = await dispatch(refreshGitSyncStatus({ silent }));
+  summary.refreshed = true;
+
+  if (Number(initialStatus?.behind || 0) > 0) {
+    summary.pullResult = await dispatch(runGitAutomationPull({ silent: true, reason: 'manual', force: false }));
+    summary.pulled = Boolean(summary.pullResult?.pulled);
+  }
+
+  const afterPullStatus = await dispatch(refreshGitSyncStatus({ silent: true }));
+  summary.finalStatus = afterPullStatus;
+
+  const hasLocalWorkToPush = Boolean(afterPullStatus?.isDirty) || Number(afterPullStatus?.ahead || 0) > 0;
+  if (hasLocalWorkToPush) {
+    summary.pushResult = await dispatch(runGitAutomationPush({ silent: true, force: false }));
+    summary.pushed = Boolean(summary.pushResult?.pushed);
+    summary.finalStatus = await dispatch(refreshGitSyncStatus({ silent: true }));
+  }
+
+  return summary;
 };
 
 export const getGitAutomationRepoDetails = (repoPath) => async (dispatch) => {

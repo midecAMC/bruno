@@ -2769,7 +2769,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, meta = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2784,6 +2784,12 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
+    const shouldAttachToWorkspace = Boolean(
+      meta?.attachToWorkspace
+      && activeWorkspace?.pathname
+      && activeWorkspace?.type !== 'default'
+      && (!meta?.workspacePath || normalizePath(meta.workspacePath) === normalizePath(activeWorkspace.pathname))
+    );
 
     if (existingCollection && isAlreadyInWorkspace) {
       toast.success('Collection is already opened');
@@ -2796,7 +2802,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         dispatch(toggleSidebarCollapse());
       }
 
-      if (activeWorkspace) {
+      if (shouldAttachToWorkspace) {
         const workspaceCollection = {
           name: brunoConfig.name,
           path: pathname
@@ -2857,7 +2863,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid
           );
 
-          if (currentWorkspace) {
+          if (shouldAttachToWorkspace && currentWorkspace) {
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 
             const alreadyInWorkspace = currentWorkspace.collections?.some(
