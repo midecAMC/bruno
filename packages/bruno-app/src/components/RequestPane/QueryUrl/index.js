@@ -23,6 +23,7 @@ import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
+import Button from 'ui/Button';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -393,10 +394,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
 
       </div>
-      <div className="flex items-center h-full mx-2 gap-3 cursor-pointer" id="send-request" onClick={handleRun}>
+      <div className="query-url-actions" id="send-request">
         <div
           title="Generate Code"
-          className="infotip"
+          className="infotip action-icon-button"
           onClick={(e) => {
             handleGenerateCode(e);
           }}
@@ -406,7 +407,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
         <div
           title="Save Request"
-          className="infotip"
+          className="infotip action-icon-button"
           onClick={(e) => {
             e.stopPropagation();
             if (!hasChanges) return;
@@ -423,21 +424,34 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             Save <span className="shortcut">({saveShortcut})</span>
           </span>
         </div>
+
         {isLoading || item.response?.stream?.running ? (
-          <IconSquareRoundedX
-            color={theme.requestTabPanel.url.iconDanger}
-            strokeWidth={1.5}
-            size={20}
-            data-testid="cancel-request-icon"
+          <Button
+            color="secondary"
+            variant="outline"
+            size="md"
+            rounded="md"
+            fontWeight="medium"
+            className="request-action-button request-cancel-button"
+            icon={<IconSquareRoundedX size={18} strokeWidth={1.8} />}
             onClick={handleCancelRequest}
-          />
+            data-testid="cancel-request-icon"
+          >
+            Cancel
+          </Button>
         ) : (
-          <IconArrowRight
-            color={theme.requestTabPanel.url.icon}
-            strokeWidth={1.5}
-            size={20}
+          <Button
+            color="primary"
+            size="md"
+            rounded="md"
+            fontWeight="medium"
+            className="request-action-button request-send-button"
+            icon={<IconArrowRight size={18} strokeWidth={2} />}
+            onClick={handleRun}
             data-testid="send-arrow-icon"
-          />
+          >
+            Send
+          </Button>
         )}
       </div>
       {generateCodeItemModalOpen && (

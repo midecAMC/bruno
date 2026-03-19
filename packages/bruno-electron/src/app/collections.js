@@ -81,7 +81,7 @@ const getCollectionConfigFile = async (pathname) => {
   return config;
 };
 
-const openCollectionDialog = async (win, watcher) => {
+const openCollectionDialog = async (win, watcher, options = {}) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openDirectory', 'createDirectory', 'multiSelections']
   });
@@ -93,7 +93,7 @@ const openCollectionDialog = async (win, watcher) => {
 
       if (isDirectory(resolvedPath)) {
         // Open each valid collection in parallel
-        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath).catch((err) => {
+        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath, options).catch((err) => {
           console.error(`[ERROR] Failed to open collection at "${resolvedPath}":`, err.message);
           return { error: err, path: resolvedPath };
         }));
@@ -127,7 +127,10 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, {
+        attachToWorkspace: Boolean(options.attachToWorkspace),
+        workspacePath: options.workspacePath || null
+      });
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
@@ -153,7 +156,10 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.size = size;
     brunoConfig.filesCount = filesCount;
 
-    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, {
+      attachToWorkspace: Boolean(options.attachToWorkspace),
+      workspacePath: options.workspacePath || null
+    });
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
   } catch (err) {
     if (!options.dontSendDisplayErrors) {

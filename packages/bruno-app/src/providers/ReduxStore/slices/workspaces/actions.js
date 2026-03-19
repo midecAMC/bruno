@@ -355,8 +355,12 @@ export const switchWorkspace = (workspaceUid) => {
     }
 
     try {
-      const { ipcRenderer } = window;
+      if (workspace.pathname) {
+        await ipcRenderer.invoke('renderer:set-last-active-workspace', workspace.pathname);
+      }
+    } catch (error) {}
 
+    try {
       const result = await ipcRenderer.invoke('renderer:get-global-environments',
         {
           workspaceUid,
@@ -502,7 +506,7 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     const state = getState();
     const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
 
-    if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
+    if (!activeWorkspaceUid || activeWorkspaceUid === 'default') {
       dispatch(switchWorkspace(workspaceUid));
     }
   };

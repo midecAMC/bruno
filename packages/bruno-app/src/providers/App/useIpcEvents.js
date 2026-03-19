@@ -28,7 +28,8 @@ import {
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
-  workspaceConfigUpdatedEvent
+  workspaceConfigUpdatedEvent,
+  switchWorkspace
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
@@ -120,8 +121,8 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
-      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig, meta) => {
+      dispatch(openCollectionEvent(uid, pathname, brunoConfig, meta));
     });
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
@@ -130,6 +131,12 @@ const useIpcEvents = () => {
 
     const removeWorkspaceConfigUpdatedListener = ipcRenderer.on('main:workspace-config-updated', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceConfigUpdatedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeLastActiveWorkspaceListener = ipcRenderer.on('main:last-active-workspace', ({ workspaceUid }) => {
+      if (workspaceUid) {
+        dispatch(switchWorkspace(workspaceUid));
+      }
     });
 
     const removeWorkspaceEnvironmentAddedListener = ipcRenderer.on('main:workspace-environment-added', (workspaceUid, file) => {
@@ -344,6 +351,7 @@ const useIpcEvents = () => {
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
       removeWorkspaceConfigUpdatedListener();
+      removeLastActiveWorkspaceListener();
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();
       removeWorkspaceEnvironmentDeletedListener();
