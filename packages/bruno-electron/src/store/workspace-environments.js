@@ -19,6 +19,26 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 
 const ENV_FILE_EXTENSION = '.yml';
 
+const findVariableForSecret = (variables = [], secret) => {
+  if (!secret?.name) {
+    return null;
+  }
+
+  if (secret.occurrence) {
+    let occurrence = 0;
+    for (const variable of variables) {
+      if (variable?.secret && variable?.name === secret.name) {
+        occurrence += 1;
+        if (occurrence === secret.occurrence) {
+          return variable;
+        }
+      }
+    }
+  }
+
+  return _.find(variables, (v) => v.name === secret.name);
+};
+
 class GlobalEnvironmentsManager {
   constructor() {}
 
@@ -78,7 +98,7 @@ class GlobalEnvironmentsManager {
     if (this.envHasSecrets(environment)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, environment);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(environment.variables, (v) => v.name === secret.name);
+        const variable = findVariableForSecret(environment.variables, secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
           variable.value = decryptionResult.value;
