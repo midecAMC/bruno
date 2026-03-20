@@ -40,6 +40,13 @@ const initialState = {
     general: {
       defaultLocation: ''
     },
+    layout: {
+      responsePaneOrientation: 'horizontal',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responseExamplePaneWidth: null,
+      responseExamplePaneHeight: null
+    },
     onboarding: {
       hasLaunchedBefore: false,
       hasSeenWelcomeModal: true

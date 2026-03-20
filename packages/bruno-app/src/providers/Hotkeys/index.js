@@ -50,12 +50,13 @@ export const HotkeysProvider = (props) => {
 
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
         if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
+          const targetUid = activeTab.type === 'response-example' ? activeTab.itemUid : activeTab.uid;
+          const item = findItemInCollection(collection, targetUid);
           if (item && item.uid) {
             if (activeTab.type === 'folder-settings') {
               dispatch(saveFolderRoot(collection.uid, item.uid));
             } else {
-              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+              dispatch(saveRequest(item.uid, activeTab.collectionUid));
             }
           } else if (activeTab.type === 'collection-settings') {
             dispatch(saveCollectionSettings(collection.uid));

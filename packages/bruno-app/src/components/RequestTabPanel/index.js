@@ -38,6 +38,7 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -85,6 +86,26 @@ const RequestTabPanel = () => {
 
   const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
   const previousTopPaneHeight = useRef(null); // Store height before devtools opens
+  const leftPaneWidthRef = useRef(leftPaneWidth);
+  const topPaneHeightRef = useRef(topPaneHeight);
+
+  useEffect(() => {
+    leftPaneWidthRef.current = leftPaneWidth;
+  }, [leftPaneWidth]);
+
+  useEffect(() => {
+    topPaneHeightRef.current = topPaneHeight;
+  }, [topPaneHeight]);
+
+  const persistPaneLayout = useCallback((nextLayout) => {
+    dispatch(savePreferences({
+      ...preferences,
+      layout: {
+        ...preferences?.layout,
+        ...nextLayout
+      }
+    })).catch(() => {});
+  }, [dispatch, preferences]);
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
@@ -131,14 +152,33 @@ const RequestTabPanel = () => {
       e.preventDefault();
       draggingRef.current = false;
       setDragging(false);
+
+      if (isVerticalLayoutRef.current) {
+        persistPaneLayout({
+          requestPaneHeight: topPaneHeightRef.current
+        });
+      } else {
+        persistPaneLayout({
+          requestPaneWidth: leftPaneWidthRef.current
+        });
+      }
     }
-  }, []);
+  }, [persistPaneLayout]);
 
   const handleDragbarMouseDown = useCallback((e) => {
     e.preventDefault();
     draggingRef.current = true;
     setDragging(true);
   }, []);
+
+  const handleResetPaneLayout = useCallback((e) => {
+    e.preventDefault();
+    resetPaneBoundaries();
+    persistPaneLayout({
+      requestPaneWidth: null,
+      requestPaneHeight: null
+    });
+  }, [persistPaneLayout, resetPaneBoundaries]);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
@@ -373,10 +413,7 @@ const RequestTabPanel = () => {
 
         <div
           className="dragbar-wrapper"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            resetPaneBoundaries();
-          }}
+          onDoubleClick={handleResetPaneLayout}
           onMouseDown={handleDragbarMouseDown}
         >
           <div className="dragbar-handle" />

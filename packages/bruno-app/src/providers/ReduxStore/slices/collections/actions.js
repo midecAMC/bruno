@@ -53,6 +53,7 @@ import {
   saveEnvironment as _saveEnvironment,
   updateEnvironmentColor as _updateEnvironmentColor,
   updateResponseExampleResponse,
+  syncResponseExampleResponse,
   saveCollectionDraft,
   saveFolderDraft,
   addVar,
@@ -692,9 +693,6 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
     };
 
     itemCopy.request = mergedRequest;
-    if (itemCopy.draft) {
-      itemCopy.draft.request = cloneDeep(mergedRequest);
-    }
 
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
       globalEnvironments,
@@ -729,7 +727,7 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
         const bodyType = getBodyType(contentType);
         const bodyContent = formatResponse(response?.data, response?.dataBuffer, bodyType);
 
-        dispatch(updateResponseExampleResponse({
+        dispatch(syncResponseExampleResponse({
           itemUid,
           collectionUid,
           exampleUid,
@@ -747,7 +745,7 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
         resolve(response);
       })
       .catch((err) => {
-        dispatch(updateResponseExampleResponse({
+        dispatch(syncResponseExampleResponse({
           itemUid,
           collectionUid,
           exampleUid,

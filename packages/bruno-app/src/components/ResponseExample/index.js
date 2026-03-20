@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendResponseExampleRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
@@ -21,15 +22,28 @@ const ResponseExample = ({ item, collection, example }) => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const defaultPaneWidth = (screenWidth - leftSidebarWidth) / 2.2;
+  const persistedLeftPaneWidth = preferences?.layout?.responseExamplePaneWidth;
+  const persistedTopPaneHeight = preferences?.layout?.responseExamplePaneHeight;
 
-  const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
-  const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
+  const [leftPaneWidth, setLeftPaneWidth] = useState(persistedLeftPaneWidth || defaultPaneWidth);
+  const [topPaneHeight, setTopPaneHeight] = useState(persistedTopPaneHeight || MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
   const [sending, setSending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
+
+  const persistPaneLayout = (nextLayout) => {
+    dispatch(savePreferences({
+      ...preferences,
+      layout: {
+        ...preferences?.layout,
+        ...nextLayout
+      }
+    })).catch(() => {});
+  };
 
   const handleMouseMove = (e) => {
     if (dragging && mainSectionRef.current) {
@@ -62,6 +76,13 @@ const ResponseExample = ({ item, collection, example }) => {
           uid: item.uid,
           requestPaneWidth: e.clientX - mainRect.left
         }));
+        persistPaneLayout({
+          responseExamplePaneWidth: leftPaneWidth
+        });
+      } else {
+        persistPaneLayout({
+          responseExamplePaneHeight: topPaneHeight
+        });
       }
     }
   };
@@ -144,14 +165,19 @@ const ResponseExample = ({ item, collection, example }) => {
     if (mainSectionRef.current) {
       const mainRect = mainSectionRef.current.getBoundingClientRect();
       if (isVerticalLayout) {
-        // In vertical mode, set leftPaneWidth to full container width
-        setLeftPaneWidth(mainRect.width);
+        setTopPaneHeight((currentHeight) => {
+          const fallbackHeight = persistedTopPaneHeight || MIN_TOP_PANE_HEIGHT;
+          return Math.max(MIN_TOP_PANE_HEIGHT, Math.min(currentHeight || fallbackHeight, mainRect.height - MIN_BOTTOM_PANE_HEIGHT));
+        });
       } else {
-        // In horizontal mode, set to roughly half width
-        setLeftPaneWidth((screenWidth - leftSidebarWidth) / 2.2);
+        const maxWidth = Math.max(MIN_LEFT_PANE_WIDTH, mainRect.width - MIN_RIGHT_PANE_WIDTH);
+        setLeftPaneWidth((currentWidth) => {
+          const fallbackWidth = persistedLeftPaneWidth || defaultPaneWidth;
+          return Math.max(MIN_LEFT_PANE_WIDTH, Math.min(currentWidth || fallbackWidth, maxWidth));
+        });
       }
     }
-  }, [isVerticalLayout, screenWidth, leftSidebarWidth]);
+  }, [defaultPaneWidth, isVerticalLayout, persistedLeftPaneWidth, persistedTopPaneHeight, screenWidth, leftSidebarWidth]);
 
   // Keyboard shortcut support for Ctrl/Cmd+S and Ctrl/Cmd+Enter
   useEffect(() => {

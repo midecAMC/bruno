@@ -43,7 +43,11 @@ const defaultPreferences = {
     }
   },
   layout: {
-    responsePaneOrientation: 'horizontal'
+    responsePaneOrientation: 'horizontal',
+    requestPaneWidth: null,
+    requestPaneHeight: null,
+    responseExamplePaneWidth: null,
+    responseExamplePaneHeight: null
   },
   beta: {
     'openapi-sync': false
@@ -122,7 +126,11 @@ const preferencesSchema = Yup.object().shape({
     }).required()
   }),
   layout: Yup.object({
-    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical']),
+    requestPaneWidth: Yup.number().min(300).nullable(),
+    requestPaneHeight: Yup.number().min(150).nullable(),
+    responseExamplePaneWidth: Yup.number().min(300).nullable(),
+    responseExamplePaneHeight: Yup.number().min(150).nullable()
   }),
   beta: Yup.object({
     'openapi-sync': Yup.boolean()
