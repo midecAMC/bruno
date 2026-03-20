@@ -177,7 +177,7 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const [activeTab, setActiveTab] = useState('collection');
+  const [activeTab, setActiveTab] = useState('global');
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);

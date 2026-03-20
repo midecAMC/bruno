@@ -12,7 +12,8 @@ const Wrapper = styled.div`
   }
 
   .table-container {
-    overflow-y: auto;
+    min-height: 70px;
+    height: 100%;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);

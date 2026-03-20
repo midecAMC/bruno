@@ -775,7 +775,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
       const { app } = require('electron');
-      const appVersion = app?.getVersion() || '2.0.3';
+      const appVersion = app?.getVersion() || '2.0.4';
 
       // For single environments and folder exports, include info in each environment
       const environmentWithInfo = (environment) => ({
