@@ -726,6 +726,31 @@ export const updateResponseExampleResponse = (state, action) => {
   example.response = { ...example.response, ...processedResponse };
 };
 
+export const syncResponseExampleResponse = (state, action) => {
+  const { itemUid, collectionUid, exampleUid, response } = action.payload;
+  const collection = findCollectionByUid(state.collections, collectionUid);
+
+  if (!collection) return;
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) return;
+
+  const processedResponse = { ...response };
+  if (processedResponse.status !== undefined) {
+    processedResponse.status = processedResponse.status ? Number(processedResponse.status) : null;
+  }
+
+  const originalExample = item.examples?.find((e) => e.uid === exampleUid);
+  if (originalExample) {
+    originalExample.response = { ...originalExample.response, ...processedResponse };
+  }
+
+  const draftExample = item.draft?.examples?.find((e) => e.uid === exampleUid);
+  if (draftExample) {
+    draftExample.response = { ...draftExample.response, ...processedResponse };
+  }
+};
+
 export const updateResponseExampleDetails = (state, action) => {
   const { itemUid, collectionUid, exampleUid, details } = action.payload;
   const collection = findCollectionByUid(state.collections, collectionUid);
