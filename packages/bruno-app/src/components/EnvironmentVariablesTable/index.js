@@ -29,23 +29,25 @@ const normalizeVariablesForForm = (variables = []) => {
   }));
 };
 
-const getDuplicateVariableNames = (variables = []) => {
-  const counts = new Map();
+const withSingleEnabledVariablePerName = (variables = [], activeIndex) => {
+  const nextVariables = cloneDeep(variables);
+  const activeVariable = nextVariables[activeIndex];
+  const activeName = activeVariable?.name?.trim();
 
-  variables.forEach((variable) => {
-    const normalizedName = variable?.name?.trim();
-    if (!normalizedName) {
-      return;
+  if (!activeName || !activeVariable?.enabled) {
+    return nextVariables;
+  }
+
+  return nextVariables.map((variable, index) => {
+    if (index !== activeIndex && variable?.name?.trim() === activeName) {
+      return {
+        ...variable,
+        enabled: false
+      };
     }
 
-    counts.set(normalizedName, (counts.get(normalizedName) || 0) + 1);
+    return variable;
   });
-
-  return new Set(
-    Array.from(counts.entries())
-      .filter(([, count]) => count > 1)
-      .map(([name]) => name)
-  );
 };
 
 const TableRow = React.memo(
@@ -234,7 +236,6 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
-      const duplicateNames = getDuplicateVariableNames(values);
 
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
@@ -251,9 +252,6 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
-        } else if (duplicateNames.has(variable.name.trim())) {
-          if (!errors[index]) errors[index] = {};
-          errors[index].name = 'Variable names must be unique within the environment';
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -389,7 +387,14 @@ const EnvironmentVariablesTable = ({
   );
 
   const handleNameChange = (index, e) => {
-    formik.handleChange(e);
+    const nextValues = cloneDeep(formik.values);
+    nextValues[index] = {
+      ...nextValues[index],
+      name: e.target.value
+    };
+    const normalizedValues = withSingleEnabledVariablePerName(nextValues, index);
+    formik.setValues(normalizedValues);
+
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -418,10 +423,25 @@ const EnvironmentVariablesTable = ({
     }
   };
 
+  const handleEnabledChange = useCallback((actualIndex) => {
+    const nextValues = cloneDeep(formik.values);
+    const currentVariable = nextValues[actualIndex];
+
+    if (!currentVariable) {
+      return;
+    }
+
+    nextValues[actualIndex] = {
+      ...currentVariable,
+      enabled: !currentVariable.enabled
+    };
+
+    formik.setValues(withSingleEnabledVariablePerName(nextValues, actualIndex));
+  }, [formik.values]);
+
   const handleSave = useCallback(() => {
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
-    const duplicateNames = getDuplicateVariableNames(variablesToSave);
 
     // Compare without UIDs since they can be different but the actual data is the same
     const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
@@ -439,11 +459,6 @@ const EnvironmentVariablesTable = ({
       }
       return false;
     });
-
-    if (duplicateNames.size > 0) {
-      toast.error('Variable names must be unique within the environment');
-      return;
-    }
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
@@ -577,7 +592,8 @@ const EnvironmentVariablesTable = ({
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
                       checked={variable.enabled}
-                      onChange={formik.handleChange}
+                      onChange={isSearchActive ? undefined : () => handleEnabledChange(actualIndex)}
+                      disabled={isSearchActive}
                     />
                   )}
                 </td>
