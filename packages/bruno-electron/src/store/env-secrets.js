@@ -4,6 +4,23 @@ const { encryptStringSafe } = require('../utils/encryption');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
+const getSecretOccurrence = (variables = [], targetIndex) => {
+  const target = variables[targetIndex];
+  if (!target) {
+    return 0;
+  }
+
+  let occurrence = 0;
+  for (let index = 0; index <= targetIndex; index += 1) {
+    const variable = variables[index];
+    if (variable?.secret && variable?.name === target.name) {
+      occurrence += 1;
+    }
+  }
+
+  return occurrence;
+};
+
 /**
  * Sample secrets store file
  *
@@ -32,10 +49,11 @@ class EnvironmentSecretsStore {
   storeEnvSecrets(collectionPathname, environment) {
     const normalizedPathname = posixifyPath(collectionPathname);
     const envVars = [];
-    _.each(environment.variables, (v) => {
+    _.each(environment.variables, (v, index) => {
       if (v.secret) {
         envVars.push({
           name: v.name,
+          occurrence: getSecretOccurrence(environment.variables, index),
           value: encryptStringSafe(v.value).value
         });
       }

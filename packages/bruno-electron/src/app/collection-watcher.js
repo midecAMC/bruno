@@ -77,6 +77,26 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
+const findVariableForSecret = (variables = [], secret) => {
+  if (!secret?.name) {
+    return null;
+  }
+
+  if (secret.occurrence) {
+    let occurrence = 0;
+    for (const variable of variables) {
+      if (variable?.secret && variable?.name === secret.name) {
+        occurrence += 1;
+        if (occurrence === secret.occurrence) {
+          return variable;
+        }
+      }
+    }
+  }
+
+  return _.find(variables, (v) => v.name === secret.name);
+};
+
 const hydrateCollectionRootWithUuid = (collectionRoot) => {
   const params = _.get(collectionRoot, 'request.params', []);
   const headers = _.get(collectionRoot, 'request.headers', []);
@@ -118,7 +138,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     if (envHasSecrets(file.data)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+        const variable = findVariableForSecret(file.data.variables, secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
           variable.value = decryptionResult.value;
@@ -158,7 +178,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     if (envHasSecrets(file.data)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+        const variable = findVariableForSecret(file.data.variables, secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
           variable.value = decryptionResult.value;
