@@ -42,19 +42,18 @@ const formatErrorMessage = (error) => {
 };
 
 // Custom hook to determine the initial format and tab based on the data buffer and headers
-export const useInitialResponseFormat = (dataBuffer, headers) => {
+export const useInitialResponseFormat = (data, dataBuffer, headers) => {
   return useMemo(() => {
     const detectedContentType = detectContentTypeFromBase64(dataBuffer);
     const contentType = getContentType(headers);
 
-    // Wait until both content types are available
-    if (detectedContentType === null || contentType === undefined) {
+    if (detectedContentType === null && contentType === undefined && data === undefined) {
       return { initialFormat: null, initialTab: null, contentType: contentType };
     }
 
-    const initial = getDefaultResponseFormat(contentType);
+    const initial = getDefaultResponseFormat(contentType ?? detectedContentType ?? '', data);
     return { initialFormat: initial.format, initialTab: initial.tab, contentType: contentType };
-  }, [dataBuffer, headers]);
+  }, [data, dataBuffer, headers]);
 };
 
 // Custom hook to determine preview format options based on content type

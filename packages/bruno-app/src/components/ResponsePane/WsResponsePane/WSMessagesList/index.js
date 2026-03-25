@@ -6,6 +6,7 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
+import ReactJson from 'react-json-view';
 
 const getContentMeta = (content) => {
   if (typeof content === 'object') {
@@ -31,7 +32,8 @@ const parseContent = (content) => {
   let contentMeta = getContentMeta(content);
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
-    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
+    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
+    parsedJson: contentMeta.isJSON ? JSON.parse(contentMeta.content) : null
   };
 };
 
@@ -159,14 +161,33 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               {dataType.toLowerCase()}
             </div>
           </div>
-          <div className="mt-1 h-[300px] w-full">
-            <CodeEditor
-              mode={showHex ? 'text/plain' : parsedContent.type}
-              theme={displayedTheme}
-              enableLineWrapping={showHex ? false : true}
-              font={preferences.codeFont || 'default'}
-              value={showHex ? contentHexdump : parsedContent.content}
-            />
+          <div className="mt-1 h-[300px] w-full overflow-auto">
+            {showHex || !parsedContent.parsedJson ? (
+              <CodeEditor
+                mode={showHex ? 'text/plain' : parsedContent.type}
+                theme={displayedTheme}
+                enableLineWrapping={showHex ? false : true}
+                font={preferences.codeFont || 'default'}
+                value={showHex ? contentHexdump : parsedContent.content}
+              />
+            ) : (
+              <ReactJson
+                src={parsedContent.parsedJson}
+                theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
+                collapsed={false}
+                displayDataTypes={false}
+                displayObjectSize={true}
+                enableClipboard={true}
+                name={false}
+                style={{
+                  backgroundColor: 'transparent',
+                  fontSize: '12px',
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                  padding: '12px',
+                  minHeight: '100%'
+                }}
+              />
+            )}
           </div>
         </>
       )}

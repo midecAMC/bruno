@@ -418,6 +418,7 @@ export const renderVarInfo = (token, options) => {
     // Store original value for comparison and track editing state
     let originalValue = rawValue;
     let isEditing = false;
+    valueContainer._isEditing = false;
     // Latest resolved value and mask state used by the copy button, eye toggle, and
     // error-revert path. Updated after each successful save so subsequent redraws
     // reflect the saved state. `??` preserves falsy-but-valid values like 0 / false.
@@ -509,6 +510,7 @@ export const renderVarInfo = (token, options) => {
       if (isEditing) return;
 
       isEditing = true;
+      valueContainer._isEditing = true;
 
       // Stage editor off-visual first to avoid a visible resize/text flash.
       editorContainer.style.display = 'block';
@@ -537,51 +539,58 @@ export const renderVarInfo = (token, options) => {
 
     // Save on blur and return to display mode
     cmEditor.on('blur', () => {
-      const newValue = cmEditor.getValue();
+      setTimeout(() => {
+        if (!isEditing || valueContainer.contains(document.activeElement)) {
+          return;
+        }
 
-      // Switch back to display mode
-      editorContainer.style.display = 'none';
-      editorContainer.style.visibility = 'visible';
-      editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
-      valueDisplay.style.display = 'block';
-      isEditing = false;
+        const newValue = cmEditor.getValue();
 
-      if (newValue !== originalValue) {
-        // Dispatch Redux action to update variable
-        const dispatch = store.dispatch;
-        dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
-            originalValue = newValue;
+        // Switch back to display mode
+        editorContainer.style.display = 'none';
+        editorContainer.style.visibility = 'visible';
+        editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
+        valueDisplay.style.display = 'block';
+        isEditing = false;
+        valueContainer._isEditing = false;
 
-            // Re-fetch scopeInfo to get the updated variable reference after save
-            const state = store.getState();
-            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
-            if (collection) {
-              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
-              if (updatedScopeInfo) {
-                scopeInfo = updatedScopeInfo;
+        if (newValue !== originalValue) {
+          // Dispatch Redux action to update variable
+          const dispatch = store.dispatch;
+          dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
+            .then(() => {
+              originalValue = newValue;
+
+              // Re-fetch scopeInfo to get the updated variable reference after save
+              const state = store.getState();
+              const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+              if (collection) {
+                const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+                const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+                if (updatedScopeInfo) {
+                  scopeInfo = updatedScopeInfo;
+                }
               }
-            }
 
-            // Re-interpolate the new value to show the resolved value in display.
-            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
-            const interpolatedValue = interpolate(newValue, allVariables);
-            currentInterpolatedValue = interpolatedValue ?? '';
-            // Check if the NEW value contains secret references and update live mask state
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            currentShouldMaskValue = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          })
-          .catch((err) => {
-            console.error('Failed to update variable:', err);
-            // Revert on error to the last good state — currentInterpolatedValue and
-            // currentShouldMaskValue still hold pre-attempt values since the success
-            // block above never ran.
-            cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          });
-      }
+              // Re-interpolate the new value to show the resolved value in display.
+              // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
+              const interpolatedValue = interpolate(newValue, allVariables);
+              currentInterpolatedValue = interpolatedValue ?? '';
+              // Check if the NEW value contains secret references and update live mask state
+              const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+              currentShouldMaskValue = isSecret || newHasSecretRefs;
+              updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+            })
+            .catch((err) => {
+              console.error('Failed to update variable:', err);
+              // Revert on error to the last good state — currentInterpolatedValue and
+              // currentShouldMaskValue still hold pre-attempt values since the success
+              // block above never ran.
+              cmEditor.setValue(originalValue);
+              updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+            });
+        }
+      }, 0);
     });
 
     // Store references for cleanup
@@ -896,7 +905,8 @@ if (!SERVER_RENDERED) {
     };
 
     const onMouseOut = function () {
-      if (isPinned) {
+      const valueContainer = popup.querySelector('.var-value-container');
+      if (isPinned || valueContainer?._isEditing) {
         return;
       }
       clearTimeout(popupTimeout);
@@ -985,7 +995,8 @@ if (!SERVER_RENDERED) {
 
     // Hide popup when user types in the main editor
     const onEditorChange = function () {
-      if (!isPinned) {
+      const valueContainer = popup.querySelector('.var-value-container');
+      if (!isPinned && !valueContainer?._isEditing) {
         hidePopup();
       }
     };

@@ -5,8 +5,37 @@ const extractMimeType = (contentType = '') => {
   return match ? match[0] : cleaned;
 };
 
-export const getDefaultResponseFormat = (contentType) => {
+const parseJsonCandidate = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+export const isExpandableJson = (value) => {
+  const parsed = parseJsonCandidate(value);
+  return Array.isArray(parsed) || (!!parsed && typeof parsed === 'object');
+};
+
+export const getDefaultResponseFormat = (contentType, data) => {
   const mime = extractMimeType(contentType);
+
+  if (isExpandableJson(data)) {
+    return { format: 'json', tab: 'preview' };
+  }
 
   const rules = [
     // ====== HTML ======
