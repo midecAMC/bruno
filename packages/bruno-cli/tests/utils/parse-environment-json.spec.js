@@ -88,4 +88,20 @@ describe('parseEnvironmentJson', () => {
     const vars = getEnvVars(env);
     expect(vars).toEqual({ three: '3', four: '4' });
   });
+
+  it('keeps duplicate names in the parsed environment and uses the enabled value', () => {
+    const input = {
+      name: 'My Env',
+      variables: [
+        { name: 'token', value: 'old-token', enabled: false },
+        { name: 'token', value: 'active-token', enabled: true }
+      ]
+    };
+    const env = parseEnvironmentJson(input);
+
+    expect(env.variables).toHaveLength(2);
+
+    const vars = getEnvVars(env);
+    expect(vars).toEqual({ token: 'active-token' });
+  });
 });

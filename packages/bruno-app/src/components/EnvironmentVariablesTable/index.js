@@ -50,6 +50,16 @@ const withSingleEnabledVariablePerName = (variables = [], activeIndex) => {
   });
 };
 
+const getDuplicateNameCounts = (variables = []) => {
+  return variables.reduce((acc, variable) => {
+    const name = variable?.name?.trim();
+    if (name) {
+      acc[name] = (acc[name] || 0) + 1;
+    }
+    return acc;
+  }, {});
+};
+
 const TableRow = React.memo(
   ({ children, item, style, ...rest }) => (
     <tr key={item.uid} style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
@@ -431,9 +441,18 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    const currentName = currentVariable?.name?.trim();
+    const hasDuplicateName = !!currentName && nextValues.some((variable, index) => {
+      return index !== actualIndex && variable?.name?.trim() === currentName;
+    });
+
+    if (hasDuplicateName && currentVariable.enabled) {
+      return;
+    }
+
     nextValues[actualIndex] = {
       ...currentVariable,
-      enabled: !currentVariable.enabled
+      enabled: hasDuplicateName ? true : !currentVariable.enabled
     };
 
     formik.setValues(withSingleEnabledVariablePerName(nextValues, actualIndex));
@@ -545,6 +564,7 @@ const EnvironmentVariablesTable = ({
   }, [formik.values, searchQuery, pinnedData]);
 
   const isSearchActive = !!searchQuery?.trim();
+  const duplicateNameCounts = useMemo(() => getDuplicateNameCounts(formik.values), [formik.values]);
 
   return (
     <StyledWrapper className={resizing ? 'is-resizing' : ''}>
@@ -582,18 +602,26 @@ const EnvironmentVariablesTable = ({
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
+            const variableName = variable.name?.trim();
+            const hasDuplicateName = !!variableName && duplicateNameCounts[variableName] > 1;
+            const activeQuery = searchQuery?.trim().toLowerCase();
+            const valueMatchesOnly = activeQuery
+              && !(variable.name?.toLowerCase().includes(activeQuery))
+              && typeof variable.value === 'string'
+              && variable.value.toLowerCase().includes(activeQuery);
 
             return (
               <>
                 <td className="text-center">
                   {!isLastEmptyRow && (
                     <input
-                      type="checkbox"
+                      type={hasDuplicateName ? 'radio' : 'checkbox'}
                       className="mousetrap"
-                      name={`${actualIndex}.enabled`}
+                      name={hasDuplicateName ? `active-env-var-${variableName}` : `${actualIndex}.enabled`}
                       checked={variable.enabled}
                       onChange={isSearchActive ? undefined : () => handleEnabledChange(actualIndex)}
                       disabled={isSearchActive}
+                      title={hasDuplicateName ? 'Use this value for duplicate variable name' : undefined}
                     />
                   )}
                 </td>
