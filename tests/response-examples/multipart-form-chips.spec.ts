@@ -92,16 +92,8 @@ test.describe('Response Example - Multipart Form File Chips', () => {
       expect(names).toEqual(['alpha.txt', 'beta.txt', 'gamma.txt']);
     });
 
-    await test.step('Click edit on the example', async () => {
-      await page.getByTestId('response-example-edit-btn').click();
-    });
-
-    await test.step('Upload button is now visible', async () => {
+    await test.step('Upload button is visible without entering a separate edit mode', async () => {
       await expect(page.getByTestId('multipart-file-upload').first()).toBeVisible();
-    });
-
-    await test.step('Cancel edit to leave the example untouched', async () => {
-      await page.getByTestId('response-example-cancel-btn').click();
     });
   });
 });

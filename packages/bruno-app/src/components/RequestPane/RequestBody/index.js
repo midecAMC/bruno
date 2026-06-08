@@ -57,6 +57,7 @@ const RequestBody = ({ item, collection }) => {
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          docKey={`${item.uid}:request-body:${bodyMode}`}
           value={bodyContent[bodyMode] || ''}
           onEdit={onEdit}
           onRun={onRun}

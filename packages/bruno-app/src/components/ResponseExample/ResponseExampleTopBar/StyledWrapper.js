@@ -71,9 +71,9 @@ const StyledWrapper = styled.div`
 
   .example-input-description {
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: 1.6;
-    resize: none;
-    min-height: 80px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 56px;
   }
 `;
 

@@ -1,6 +1,23 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  overflow: hidden;
+  min-width: 0;
+
+  .response-pane-content {
+    display: flex;
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
+    padding: 0 1rem;
+    margin-top: 1rem;
+  }
+
+  .result-view-tabs {
+    display: flex;
+    align-items: center;
+  }
+
   div.tabs {
     div.tab {
       padding: 6px 0px;

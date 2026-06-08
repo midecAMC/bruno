@@ -9,7 +9,7 @@ test.describe.serial('Edit Response Examples', () => {
     execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'edit-example.bru')}`);
   });
 
-  test('should enter edit mode and show editable fields when edit button is clicked', async ({ pageWithUserData: page }) => {
+  test('should show editable fields immediately', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('edit-example').click();
@@ -33,10 +33,7 @@ test.describe.serial('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Verify edit mode functionality', async () => {
-      await expect(page.getByTestId('response-example-title')).toBeVisible();
-      await expect(page.getByTestId('response-example-edit-btn')).toBeVisible();
-      await page.getByTestId('response-example-edit-btn').click();
+    await test.step('Verify direct editing functionality', async () => {
       await expect(page.getByTestId('response-example-name-input')).toBeVisible();
       await expect(page.getByTestId('response-example-description-input')).toBeVisible();
       await expect(page.getByTestId('response-example-save-btn')).toBeVisible();
@@ -70,11 +67,11 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Update example name and verify persistence', async () => {
-      await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Updated Example Name');
       await page.getByTestId('response-example-save-btn').click();
-      await expect(page.getByTestId('response-example-title')).toHaveText('edit-example / Updated Example Name');
+      await expect(page.getByTestId('response-example-name-input')).toHaveValue('Updated Example Name');
+      await expect(page.getByTestId('response-example-save-btn')).toBeDisabled();
     });
   });
 
@@ -104,11 +101,11 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Update example description and verify persistence', async () => {
-      await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-description-input').clear();
       await page.getByTestId('response-example-description-input').fill('Updated description for the example');
       await page.getByTestId('response-example-save-btn').click();
-      await expect(page.getByTestId('response-example-description')).toHaveText('Updated description for the example');
+      await expect(page.getByTestId('response-example-description-input')).toHaveValue('Updated description for the example');
+      await expect(page.getByTestId('response-example-save-btn')).toBeDisabled();
     });
   });
 
@@ -138,12 +135,12 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Test cancel functionality and verify reversion', async () => {
-      const originalName = await page.getByTestId('response-example-title').textContent();
-      await page.getByTestId('response-example-edit-btn').click();
+      const originalName = await page.getByTestId('response-example-name-input').inputValue();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('This should not be saved');
       await page.getByTestId('response-example-cancel-btn').click();
-      await expect(page.getByTestId('response-example-title')).toHaveText(originalName!);
+      await expect(page.getByTestId('response-example-name-input')).toHaveValue(originalName);
+      await expect(page.getByTestId('response-example-cancel-btn')).toBeDisabled();
     });
   });
 
@@ -173,12 +170,12 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Test keyboard shortcut save functionality', async () => {
-      await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Keyboard Shortcut Test');
       const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
       await page.keyboard.press(saveShortcut);
-      await expect(page.getByTestId('response-example-title')).toHaveText('edit-example / Keyboard Shortcut Test');
+      await expect(page.getByTestId('response-example-name-input')).toHaveValue('Keyboard Shortcut Test');
+      await expect(page.getByTestId('response-example-save-btn')).toBeDisabled();
     });
   });
 });

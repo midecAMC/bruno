@@ -1,114 +1,138 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import get from 'lodash/get';
-import find from 'lodash/find';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import Tab from 'components/Tab';
-import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
-import StatusCode from 'components/ResponsePane/StatusCode';
-import ResponseExampleResponseContent from './ResponseExampleResponseContent';
+import { useDispatch } from 'react-redux';
+import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
+import QueryResult, {
+  useInitialResponseFormat,
+  useResponsePreviewFormatOptions
+} from 'components/ResponsePane/QueryResult';
+import QueryResultTypeSelector from 'components/ResponsePane/QueryResult/QueryResultTypeSelector';
+import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import ResponseExampleResponseHeaders from './ResponseExampleResponseHeaders';
 import ResponseExampleStatusInput from './ResponseExampleStatusInput';
 import StyledWrapper from './StyledWrapper';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 
 const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, onSave }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-
-  // Get the focused tab for reading persisted tab state
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeTab = focusedTab?.responsePaneTab || 'response';
-
-  const selectTab = (tab) => {
-    dispatch(updateResponsePaneTab({
-      uid: exampleUid,
-      responsePaneTab: tab
-    }));
-  };
+  const [activeTab, setActiveTab] = useState('response');
+  const [selectedFormat, setSelectedFormat] = useState(null);
+  const [selectedViewTab, setSelectedViewTab] = useState(null);
+  const rightContentRef = useRef(null);
 
   const exampleData = useMemo(() => {
     return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid) || {};
   }, [item, exampleUid]);
 
-  const getTabPanel = (tab) => {
-    switch (tab) {
-      case 'response': {
-        return (
-          <ResponseExampleResponseContent
-            editMode={editMode}
-            item={item}
-            collection={collection}
-            exampleUid={exampleUid}
-            onSave={onSave}
-          />
-        );
-      }
-      case 'headers': {
-        return (
-          <ResponseExampleResponseHeaders
-            editMode={editMode}
-            item={item}
-            collection={collection}
-            exampleUid={exampleUid}
-            onSave={onSave}
-          />
-        );
-      }
-      default: {
-        return <div>404 | Not found</div>;
-      }
+  const responseHeaders = useMemo(
+    () => Object.fromEntries((exampleData?.response?.headers || []).map((header) => [header.name, header.value])),
+    [exampleData]
+  );
+  const responseData = exampleData?.response?.body?.content || '';
+  const displayItem = useMemo(() => ({
+    ...item,
+    response: {
+      data: responseData,
+      headers: responseHeaders,
+      status: exampleData?.response?.status
     }
-  };
+  }), [exampleData?.response?.status, item, responseData, responseHeaders]);
 
-  const tabConfig = [
+  const { initialFormat, initialTab } = useInitialResponseFormat(responseData, null, responseHeaders);
+  const formatOptions = useResponsePreviewFormatOptions(null, responseHeaders);
+
+  useEffect(() => {
+    setSelectedFormat(initialFormat || 'raw');
+    setSelectedViewTab(initialTab || 'editor');
+  }, [exampleUid, initialFormat, initialTab]);
+
+  const onResponseEdit = useCallback((value) => {
+    dispatch(updateResponseExampleResponse({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid,
+      response: {
+        body: {
+          type: exampleData?.response?.body?.type || 'text',
+          content: value
+        }
+      }
+    }));
+  }, [collection.uid, dispatch, exampleData?.response?.body?.type, exampleUid, item.uid]);
+
+  const tabs = [
+    { key: 'response', label: 'Response' },
     {
-      name: 'response',
-      label: 'Response'
-    },
-    {
-      name: 'headers',
+      key: 'headers',
       label: 'Headers',
-      count: (exampleData?.response?.headers || []).length
+      indicator: exampleData?.response?.headers?.length
+        ? <sup className="ml-1 font-medium">{exampleData.response.headers.length}</sup>
+        : null
     }
   ];
 
+  const rightContent = (
+    <div ref={rightContentRef} className="flex items-center gap-3">
+      {activeTab === 'response' && (
+        <QueryResultTypeSelector
+          formatOptions={formatOptions}
+          formatValue={selectedFormat}
+          onFormatChange={setSelectedFormat}
+          onPreviewTabSelect={setSelectedViewTab}
+          selectedTab={selectedViewTab}
+          isActiveTab={true}
+          onTabSelect={() => setSelectedViewTab('editor')}
+        />
+      )}
+      <ResponseExampleStatusInput
+        item={item}
+        collection={collection}
+        exampleUid={exampleUid}
+        status={exampleData?.response?.status}
+        statusText={exampleData?.response?.statusText}
+      />
+    </div>
+  );
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs mb-4 px-4" role="tablist">
-        {tabConfig.map((tab) => (
-          <Tab
-            key={tab.name}
-            name={tab.name}
-            label={tab.label}
-            isActive={activeTab === tab.name}
-            onClick={selectTab}
-            count={tab.count}
-          />
-        ))}
+      <div className="px-4">
+        <ResponsiveTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabSelect={setActiveTab}
+          rightContent={rightContent}
+          rightContentRef={rightContentRef}
+        />
+      </div>
 
-        <div className="flex flex-grow justify-end items-center">
-          <ResponseLayoutToggle />
-          {editMode ? (
-            <ResponseExampleStatusInput
+      <section className="response-pane-content">
+        <HeightBoundContainer>
+          {activeTab === 'response' ? (
+            <QueryResult
+              item={displayItem}
+              collection={collection}
+              data={responseData}
+              headers={responseHeaders}
+              selectedFormat={selectedFormat || 'raw'}
+              selectedTab={selectedViewTab || 'editor'}
+              docKey={`${item.uid}:example:${exampleUid}:response`}
+              onEdit={onResponseEdit}
+              onSave={onSave}
+              readOnly={!editMode || selectedViewTab === 'preview'}
+              disableRunEventListener={true}
+            />
+          ) : editMode ? (
+            <ResponseExampleResponseHeaders
+              editMode={editMode}
               item={item}
               collection={collection}
               exampleUid={exampleUid}
-              status={exampleData?.response?.status}
-              statusText={exampleData?.response?.statusText}
             />
           ) : (
-            exampleData?.response?.status && (
-              <StatusCode status={exampleData.response.status} statusText={exampleData.response.statusText} />
-            )
+            <ResponseHeaders headers={responseHeaders} item={displayItem} />
           )}
-        </div>
-      </div>
-
-      <section className="flex w-full flex-1 relative">
-        <HeightBoundContainer>
-          {getTabPanel(activeTab)}
         </HeightBoundContainer>
       </section>
     </StyledWrapper>

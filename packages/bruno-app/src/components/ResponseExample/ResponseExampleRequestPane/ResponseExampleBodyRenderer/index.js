@@ -68,6 +68,7 @@ const ResponseExampleBodyRenderer = ({
               theme={displayedTheme}
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
+              docKey={`${item.uid}:example:${exampleUid}:request-body:${bodyMode}`}
               value={getBodyContent()}
               onEdit={onBodyEdit}
               onRun={() => {}}

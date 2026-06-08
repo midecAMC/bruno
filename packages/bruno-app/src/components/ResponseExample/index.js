@@ -10,6 +10,7 @@ import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { hasExampleChanges } from 'utils/collections';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -29,7 +30,6 @@ const ResponseExample = ({ item, collection, example }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState(persistedLeftPaneWidth || defaultPaneWidth);
   const [topPaneHeight, setTopPaneHeight] = useState(persistedTopPaneHeight || MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
   const [sending, setSending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -112,14 +112,11 @@ const ResponseExample = ({ item, collection, example }) => {
     };
   }, [dragging]);
 
-  const handleEditToggle = () => {
-    setEditMode(!editMode);
-  };
+  const hasChanges = hasExampleChanges(item, example?.uid);
 
   const handleSave = () => {
-    if (item && collection) {
+    if (item && collection && hasChanges) {
       dispatch(saveRequest(item.uid, collection.uid));
-      setEditMode(false);
     }
   };
 
@@ -131,7 +128,6 @@ const ResponseExample = ({ item, collection, example }) => {
         exampleUid: example.uid
       }));
     }
-    setEditMode(false);
   };
 
   const handleGenerateCode = (exampleData) => {
@@ -184,14 +180,14 @@ const ResponseExample = ({ item, collection, example }) => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        if (editMode && item && collection) {
+        if (hasChanges && item && collection) {
           handleSave();
         }
       }
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (!editMode && item && collection && example?.uid && !sending) {
+        if (item && collection && example?.uid && !sending) {
           handleTryExample();
         }
       }
@@ -201,7 +197,7 @@ const ResponseExample = ({ item, collection, example }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editMode, item, collection, example?.uid, sending]);
+  }, [hasChanges, item, collection, example?.uid, sending]);
 
   return (
     <>
@@ -210,8 +206,7 @@ const ResponseExample = ({ item, collection, example }) => {
           item={item}
           collection={collection}
           exampleUid={example.uid}
-          editMode={editMode}
-          onEditToggle={handleEditToggle}
+          hasChanges={hasChanges}
           onSave={handleSave}
           onCancel={handleCancel}
           onGenerateCode={handleGenerateCode}
@@ -234,7 +229,7 @@ const ResponseExample = ({ item, collection, example }) => {
                 item={item}
                 collection={collection}
                 example={example}
-                editMode={editMode}
+                editMode={true}
                 exampleUid={example?.uid}
                 onSave={handleSave}
               />
@@ -250,7 +245,7 @@ const ResponseExample = ({ item, collection, example }) => {
               item={item}
               collection={collection}
               example={example}
-              editMode={editMode}
+              editMode={true}
               exampleUid={example?.uid}
               onSave={handleSave}
             />

@@ -67,6 +67,9 @@ async function execCommandWithOutput(command) {
 
 async function main() {
   try {
+    console.log('Building shared packages');
+    await execCommandWithOutput('npm run build:bruno-common');
+
     console.log('Building the web application');
     await execCommandWithOutput('npm run build:web');
 

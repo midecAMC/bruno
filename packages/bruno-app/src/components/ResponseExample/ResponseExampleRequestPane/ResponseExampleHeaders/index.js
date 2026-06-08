@@ -140,8 +140,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
   }
 
   return (
-    <StyledWrapper className="w-full mt-4">
-      <div className="mb-3 title text-xs font-bold">Headers</div>
+    <StyledWrapper className="w-full">
       <EditableTable
         tableId="example-headers"
         columnWidths={exampleHeadersWidths}

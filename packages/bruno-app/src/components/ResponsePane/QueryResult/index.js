@@ -102,7 +102,10 @@ const QueryResult = ({
   filterExpanded,
   onFilterChange,
   onFilterExpandChange,
-  docKey
+  docKey,
+  onEdit,
+  onSave,
+  readOnly = true
 }) => {
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
@@ -216,6 +219,9 @@ const QueryResult = ({
                 disableRunEventListener={disableRunEventListener}
                 displayedTheme={displayedTheme}
                 docKey={docKey}
+                onEdit={onEdit}
+                onSave={onSave}
+                readOnly={readOnly}
               />
             </div>
             {queryFilterEnabled && (

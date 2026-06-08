@@ -766,10 +766,13 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && item.draft) {
+          item.type = item.draft.type;
+          item.name = item.draft.name;
+          item.seq = item.draft.seq;
+          item.tags = item.draft.tags;
           item.request = item.draft.request;
-          if (item.draft.settings) {
-            item.settings = item.draft.settings;
-          }
+          item.examples = item.draft.examples;
+          item.settings = item.draft.settings;
           item.draft = null;
         }
       }

@@ -14,8 +14,6 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;
     flex: 1 1 0;
-    display: flex;
-    flex-direction: column-reverse;
   }
 
   .CodeMirror-placeholder {

@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.base};
-  height: 300px;
 
   .body-mode-selector {
     background: transparent;

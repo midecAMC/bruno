@@ -28,7 +28,10 @@ const QueryResultPreview = ({
   previewMode,
   disableRunEventListener,
   displayedTheme,
-  docKey
+  docKey,
+  onEdit,
+  onSave: onSaveProp,
+  readOnly = true
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -48,7 +51,13 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSave = () => {
+    if (onSaveProp) {
+      onSaveProp();
+      return;
+    }
+    dispatch(saveRequest(item.uid, collection.uid));
+  };
 
   if (selectedTab === 'editor') {
     return (
@@ -61,11 +70,12 @@ const QueryResultPreview = ({
         theme={displayedTheme}
         onRun={onRun}
         onSave={onSave}
+        onEdit={onEdit}
         value={formattedData}
         mode={codeMirrorMode}
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
-        readOnly
+        readOnly={readOnly}
       />
     );
   }
