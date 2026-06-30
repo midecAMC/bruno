@@ -689,7 +689,16 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 };
 
 export const transformRequestToSaveToFilesystem = (item) => {
-  const _item = item.draft ? item.draft : item;
+  const _item = item.draft
+    ? {
+        ...item,
+        ...item.draft,
+        request: {
+          ...item.request,
+          ...item.draft.request
+        }
+      }
+    : item;
 
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {

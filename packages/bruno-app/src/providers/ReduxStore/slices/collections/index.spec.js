@@ -107,6 +107,61 @@ describe('collections slice', () => {
     expect(savedItem.draft).toBeNull();
   });
 
+  it('preserves request fields when saving a partial draft that only changes examples', () => {
+    const initialState = {
+      collections: [
+        {
+          uid: 'collectionuid00000001',
+          items: [
+            {
+              uid: 'requestuid0000000001',
+              type: 'http-request',
+              name: 'Test Request',
+              seq: 1,
+              tags: ['old-tag'],
+              settings: { encodeUrl: true },
+              request: {
+                method: 'GET',
+                url: 'https://example.com',
+                headers: [],
+                params: [],
+                body: { mode: 'none' }
+              },
+              examples: [
+                {
+                  uid: 'exampleuid0000000001',
+                  itemUid: 'requestuid0000000001',
+                  name: 'Old Example',
+                  type: 'http-request'
+                }
+              ],
+              draft: {
+                examples: []
+              }
+            }
+          ]
+        }
+      ],
+      collectionSortOrder: 'default',
+      activeConnections: [],
+      tempDirectories: {},
+      saveTransientRequestModals: []
+    };
+
+    const nextState = reducer(initialState, saveRequest({
+      itemUid: 'requestuid0000000001',
+      collectionUid: 'collectionuid00000001'
+    }));
+
+    const savedItem = nextState.collections[0].items[0];
+
+    expect(savedItem.uid).toBe('requestuid0000000001');
+    expect(savedItem.name).toBe('Test Request');
+    expect(savedItem.request.url).toBe('https://example.com');
+    expect(savedItem.examples).toEqual([]);
+    expect(savedItem.draft).toBeNull();
+  });
+
   it('persists collection draft root and bruno config when saving collection settings', () => {
     const initialState = {
       collections: [

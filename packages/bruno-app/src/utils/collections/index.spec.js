@@ -42,6 +42,120 @@ describe('mergeHeaders', () => {
 });
 
 describe('transformRequestToSaveToFilesystem', () => {
+  it('preserves the request uid when a partial draft removes the last example', () => {
+    const item = {
+      uid: 'requestuid123456789012',
+      type: 'http-request',
+      name: 'Request with example',
+      seq: 1,
+      settings: {},
+      tags: [],
+      examples: [
+        {
+          uid: 'exampleuid123456789012',
+          itemUid: 'requestuid123456789012',
+          name: 'Example',
+          type: 'http-request'
+        }
+      ],
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        params: [],
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'none' },
+        script: { req: '', res: '' },
+        vars: { req: [], res: [] },
+        assertions: [],
+        tests: '',
+        docs: ''
+      },
+      draft: {
+        examples: []
+      }
+    };
+
+    const transformed = transformRequestToSaveToFilesystem(item);
+
+    expect(transformed.uid).toBe(item.uid);
+    expect(transformed.examples).toEqual([]);
+  });
+
+  it('saves edited draft examples instead of base examples', () => {
+    const item = {
+      uid: 'requestuid123456789012',
+      type: 'http-request',
+      name: 'Request with example',
+      seq: 1,
+      settings: {},
+      tags: [],
+      examples: [
+        {
+          uid: 'exampleuid123456789012',
+          itemUid: 'requestuid123456789012',
+          name: 'Base Example',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com/base',
+            params: [],
+            headers: [],
+            body: { mode: 'none' }
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            headers: [],
+            body: { type: 'text', content: 'base' }
+          }
+        }
+      ],
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        params: [],
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'none' },
+        script: { req: '', res: '' },
+        vars: { req: [], res: [] },
+        assertions: [],
+        tests: '',
+        docs: ''
+      },
+      draft: {
+        examples: [
+          {
+            uid: 'exampleuid123456789012',
+            itemUid: 'requestuid123456789012',
+            name: 'Edited Example',
+            type: 'http-request',
+            request: {
+              method: 'POST',
+              url: 'https://example.com/edited',
+              params: [],
+              headers: [],
+              body: { mode: 'json', json: '{"edited":true}' }
+            },
+            response: {
+              status: '201',
+              statusText: 'Created',
+              headers: [],
+              body: { type: 'text', content: 'edited' }
+            }
+          }
+        ]
+      }
+    };
+
+    const transformed = transformRequestToSaveToFilesystem(item);
+
+    expect(transformed.examples[0].name).toBe('Edited Example');
+    expect(transformed.examples[0].request.url).toBe('https://example.com/edited');
+    expect(transformed.examples[0].response.status).toBe(201);
+  });
+
   it('preserves header and param annotations', () => {
     const item = {
       uid: 'requestuid123456789012',

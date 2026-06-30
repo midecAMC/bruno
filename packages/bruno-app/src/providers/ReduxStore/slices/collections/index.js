@@ -766,13 +766,14 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && item.draft) {
-          item.type = item.draft.type;
-          item.name = item.draft.name;
-          item.seq = item.draft.seq;
-          item.tags = item.draft.tags;
-          item.request = item.draft.request;
-          item.examples = item.draft.examples;
-          item.settings = item.draft.settings;
+          const draft = item.draft;
+          item.type = draft.type ?? item.type;
+          item.name = draft.name ?? item.name;
+          item.seq = draft.seq ?? item.seq;
+          item.tags = draft.tags ?? item.tags;
+          item.request = draft.request ? { ...item.request, ...draft.request } : item.request;
+          item.examples = Object.prototype.hasOwnProperty.call(draft, 'examples') ? draft.examples : item.examples;
+          item.settings = draft.settings ?? item.settings;
           item.draft = null;
         }
       }
