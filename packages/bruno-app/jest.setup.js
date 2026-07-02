@@ -1,6 +1,7 @@
 jest.mock('nanoid', () => {
   return {
-    nanoid: () => {}
+    nanoid: () => {},
+    customAlphabet: () => () => 'testuid1234567890123'
   };
 });
 

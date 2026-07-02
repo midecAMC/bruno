@@ -708,7 +708,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
         ...example.response,
         status: example.response.status !== undefined && example.response.status !== null
           ? Number(example.response.status)
-          : null
+          : null,
+        headers: map(example.response.headers || [], (header) => ({
+          ...header,
+          uid: header.uid || uuid()
+        }))
       } : example.response
     }));
   };

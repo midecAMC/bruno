@@ -729,6 +729,7 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
       .then((response) => {
         const headersArray = response?.headers && typeof response.headers === 'object'
           ? Object.entries(response.headers).map(([name, value]) => ({
+              uid: uuid(),
               name,
               value,
               enabled: true

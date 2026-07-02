@@ -156,6 +156,62 @@ describe('transformRequestToSaveToFilesystem', () => {
     expect(transformed.examples[0].response.status).toBe(201);
   });
 
+  it('adds missing response header uids when saving examples', () => {
+    const item = {
+      uid: 'requestuid123456789012',
+      type: 'http-request',
+      name: 'Request with synced example response',
+      seq: 1,
+      settings: {},
+      tags: [],
+      examples: [
+        {
+          uid: 'exampleuid123456789012',
+          itemUid: 'requestuid123456789012',
+          name: 'Example',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            params: [],
+            headers: [],
+            body: { mode: 'none' }
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            headers: [
+              {
+                name: 'content-type',
+                value: 'application/json',
+                enabled: true
+              }
+            ],
+            body: { type: 'json', content: '{}' }
+          }
+        }
+      ],
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        params: [],
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'none' },
+        script: { req: '', res: '' },
+        vars: { req: [], res: [] },
+        assertions: [],
+        tests: '',
+        docs: ''
+      }
+    };
+
+    const transformed = transformRequestToSaveToFilesystem(item);
+
+    expect(transformed.examples[0].response.headers[0].uid).toEqual(expect.any(String));
+    expect(transformed.examples[0].response.headers[0].name).toBe('content-type');
+  });
+
   it('preserves header and param annotations', () => {
     const item = {
       uid: 'requestuid123456789012',
