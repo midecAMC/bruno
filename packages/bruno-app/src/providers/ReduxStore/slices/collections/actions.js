@@ -680,7 +680,8 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
       return reject(new Error('Collection not found'));
     }
 
-    const examples = item?.draft?.examples || item?.examples || [];
+    const latestItem = findItemInCollection(collection, itemUid) || item;
+    const examples = latestItem?.draft?.examples || latestItem?.examples || [];
     const example = examples.find((e) => e.uid === exampleUid);
 
     if (!example) {
@@ -688,7 +689,7 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
     }
 
     let collectionCopy = cloneDeep(collection);
-    const itemCopy = cloneDeep(item);
+    const itemCopy = cloneDeep(latestItem);
     const baseRequest = cloneDeep(itemCopy?.draft?.request || itemCopy?.request || {});
     const exampleRequest = cloneDeep(example.request || {});
     const mergedRequest = {
