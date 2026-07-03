@@ -217,6 +217,27 @@ describe('common utils', () => {
       expect(prettifyJsonString(input)).toBe(expected);
     });
 
+    test('should format JSON with unquoted timestamp Bruno variables', () => {
+      const input = `[{"serialid":"{{DeviceSN}}","timestamp":{{$timestamp}},"events":[{"time":{{$timestamp}},"description":"{\\"maxValussssssssseSlow\\":0.223039,\\"maxValueAcceleration\\":32.355965,\\"maxValueMain\\":47.498505,\\"thresholdSlow\\":100000.000000,\\"ration\\":100000.000000,\\"thresholdMain\\":5512.000000,\\"speed\\":1782,\\"slowRpm\\":200,\\"accelerationRamp\\":8,\\"Ramp\\":6,\\"version\\":\\"0.15.5\\"}","severity":"info","type":"Hardware","userID":353797}]}]`;
+      const expected = `[
+  {
+    "serialid": "{{DeviceSN}}",
+    "timestamp": {{$timestamp}},
+    "events": [
+      {
+        "time": {{$timestamp}},
+        "description": "{\\"maxValussssssssseSlow\\":0.223039,\\"maxValueAcceleration\\":32.355965,\\"maxValueMain\\":47.498505,\\"thresholdSlow\\":100000.000000,\\"ration\\":100000.000000,\\"thresholdMain\\":5512.000000,\\"speed\\":1782,\\"slowRpm\\":200,\\"accelerationRamp\\":8,\\"Ramp\\":6,\\"version\\":\\"0.15.5\\"}",
+        "severity": "info",
+        "type": "Hardware",
+        "userID": 353797
+      }
+    ]
+  }
+]`;
+
+      expect(prettifyJsonString(input)).toBe(expected);
+    });
+
     test('should format complex json string', () => {
       const input = `{"id": 123456789123456789123456789,"name": "Test 'JSON' Data with \"quotes\" — Pretty Print ","active": true,"price": 199.9999999,"decimals": 1.00,"nullValue": null,"unicodeText": "こんにちは世界 ","escapedCharacters": "Line1\\nLine2\\tTabbed\"Quoted\" and 'single quoted' with 'code' style","nestedObject": {  "level1": {    "level2": {      "emptyArray": [],      "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",      "booleanValues": [        true,        false,        true      ],      "numbers": [        0,        -1,        1.23e10,        3.1415926535      ]    }  }},"mixedArray": [  "string with 'apostrophe'",  42,  false,  null,  {    "innerObj": {      "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",      "nestedArray": [        {          "a": "O'Reilly"        }{          "b": "'inline code'"        },        [          "deep",          "array",          {            "c": "contains 'quotes'"          }        ]      ]    }  }],"nonStringVariable": {{nonStringVar}},"withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'","dateExample": "2025-11-07T12:34:56Z","regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$","urls": {  "website": "https://example.com?param='value'&flag='true'",  "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"},"multiLineString": "This is a long text\\nthat spans multiple\\nlines with \`backticks\` 'quotes' and 'code' snippets "}`;
       const expectedOutput = `{

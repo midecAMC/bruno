@@ -439,7 +439,7 @@ export const prettifyJsonString = (jsonDataString) => {
     const { hashed, restore } = patternHasher(jsonDataString);
     const edits = format(hashed, undefined, { tabSize: 2, insertSpaces: true });
     const formattedJsonDataStringHashed = applyEdits(hashed, edits);
-    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
+    const formattedJsonDataString = restore(formattedJsonDataStringHashed).replace(/:({{[^}]+}})/g, ': $1');
     return formattedJsonDataString;
   } catch (error) {
     console.log('error formatting json data!');
