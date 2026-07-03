@@ -106,5 +106,11 @@ describe('collection actions', () => {
       headers: [{ uid: 'headeruid0000000001', name: 'X-Draft', value: '1', enabled: true }],
       body: { mode: 'json', json: '{"draft":true}' }
     });
+    expect(sentItem.draft.request).toMatchObject({
+      method: 'POST',
+      url: 'https://example.com/example-draft',
+      headers: [{ uid: 'headeruid0000000001', name: 'X-Draft', value: '1', enabled: true }],
+      body: { mode: 'json', json: '{"draft":true}' }
+    });
   });
 });

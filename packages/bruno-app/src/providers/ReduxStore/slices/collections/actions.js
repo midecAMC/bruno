@@ -707,6 +707,9 @@ export const sendResponseExampleRequest = (item, collectionUid, exampleUid) => (
     };
 
     itemCopy.request = mergedRequest;
+    if (itemCopy.draft) {
+      itemCopy.draft.request = mergedRequest;
+    }
 
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
       globalEnvironments,
